@@ -134,8 +134,8 @@
   .pending-item .pname{font-weight:600; font-size:13px;}
   .pending-item .pmeta{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:3px;}
 
-  form .row{display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:14px;}
-  @media(min-width:640px){ form .row{grid-template-columns:1fr 1fr;} form .row.full{grid-template-columns:1fr;} }
+  .row{display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:14px;}
+  @media(min-width:640px){ .row{grid-template-columns:1fr 1fr;} .row.full{grid-template-columns:1fr;} }
   label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-family:var(--mono); letter-spacing:.3px;}
   input,select,textarea{
     width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
@@ -203,6 +203,48 @@
 
   .chart-wrap{position:relative; height:240px;}
   .loading{color:var(--muted); font-family:var(--mono); font-size:12px; text-align:center; padding:30px;}
+
+  /* ---- Segmented control (สรุป ณ ปัจจุบัน / รายช่วงเวลา) ---- */
+  .seg{display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:3px; gap:3px;}
+  .seg-btn{flex:1; background:none; border:none; color:var(--muted); font-family:var(--thai); font-weight:600;
+    font-size:13px; padding:10px 8px; border-radius:7px; cursor:pointer;}
+  .seg-btn.active{background:var(--accent); color:#00252e;}
+
+  /* ---- Executive report content ---- */
+  .report-page{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px 18px;}
+  .report-head{text-align:center; border-bottom:2px solid var(--line); padding-bottom:16px; margin-bottom:20px;}
+  .report-head .org{font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:1px;}
+  .report-head h2{font-family:var(--disp); font-size:19px; margin:8px 0 4px;}
+  .report-head .period{font-size:13px; color:var(--muted);}
+  .report-section{margin-bottom:24px;}
+  .report-section h3{font-family:var(--disp); font-size:14px; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--line);}
+  .kpi-row{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:6px;}
+  @media(min-width:640px){ .kpi-row{grid-template-columns:repeat(4,1fr);} }
+  .kpi{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px; text-align:center;}
+  .kpi .k-label{font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase;}
+  .kpi .k-value{font-family:var(--disp); font-size:22px; font-weight:700; margin-top:4px;}
+  .report-foot{margin-top:20px; padding-top:14px; border-top:1px solid var(--line); font-family:var(--mono); font-size:10.5px; color:var(--muted); text-align:right;}
+
+  @media print{
+    body{background:#fff !important; color:#111 !important;}
+    .scanline, nav, header, .no-print, .toast{display:none !important;}
+    main{padding:0 !important; max-width:none !important;}
+    .view{display:none !important;}
+    .view#view-report{display:block !important;}
+    .report-page{background:#fff !important; border:none !important; padding:0 !important; color:#111 !important;}
+    .report-head{border-bottom:2px solid #333 !important;}
+    .report-head .org, .report-head .period{color:#444 !important;}
+    .report-section h3{border-bottom:1px solid #999 !important; color:#111 !important;}
+    .kpi{background:#f4f4f4 !important; border:1px solid #ccc !important;}
+    .kpi .k-label{color:#555 !important;}
+    .kpi .k-value{color:#111 !important;}
+    th,td{border-bottom:1px solid #ccc !important; color:#111 !important;}
+    th{color:#555 !important;}
+    .badge{border:1px solid #999 !important; background:#fff !important; color:#111 !important;}
+    .report-foot{color:#666 !important;}
+    table{page-break-inside:auto;}
+    tr{page-break-inside:avoid;}
+  }
 </style>
 </head>
 <body>
@@ -223,6 +265,7 @@
   <button class="tab-btn active" data-view="form"><span class="ic">📋</span>กรอกข้อมูล</button>
   <button class="tab-btn" data-view="dashboard"><span class="ic">📊</span>แดชบอร์ด</button>
   <button class="tab-btn" data-view="history"><span class="ic">🕘</span>ประวัติ</button>
+  <button class="tab-btn" data-view="report"><span class="ic">🗒️</span>รายงาน</button>
 </nav>
 
 <main>
@@ -352,6 +395,34 @@
     </div>
   </section>
 
+  <!-- ================= EXECUTIVE REPORT VIEW ================= -->
+  <section class="view" id="view-report">
+    <div class="card no-print" style="margin-bottom:16px;">
+      <div class="seg" id="reportModeSeg">
+        <button class="seg-btn active" data-mode="current">สรุป ณ ปัจจุบัน</button>
+        <button class="seg-btn" data-mode="period">สรุปรายช่วงเวลา</button>
+      </div>
+      <div id="periodPicker" class="row" style="display:none; margin-top:14px;">
+        <div>
+          <label>จากวันที่</label>
+          <input type="date" id="reportFrom">
+        </div>
+        <div>
+          <label>ถึงวันที่</label>
+          <input type="date" id="reportTo">
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="submit" id="reportLoadBtn">ดูรายงาน</button>
+        <button class="btn-secondary" id="reportPrintBtn">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+      </div>
+    </div>
+
+    <div id="reportContent">
+      <div class="empty-state">กด "ดูรายงาน" เพื่อสร้างรายงาน</div>
+    </div>
+  </section>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -421,6 +492,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('view-' + btn.dataset.view).classList.add('active');
     if (btn.dataset.view === 'dashboard') loadDashboard();
     if (btn.dataset.view === 'history') loadHistory();
+    if (btn.dataset.view === 'report' && !reportLoadedOnce) { reportLoadedOnce = true; loadReport(); }
   });
 });
 
@@ -718,6 +790,184 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   const dateTag = todayStr();
   XLSX.writeFile(wb, `รายงานกล้องวงจรปิด_MSBRC2_${dateTag}.xlsx`);
 });
+
+// ---------- Executive Report ----------
+let reportMode = 'current';
+let reportLoadedOnce = false;
+
+document.querySelectorAll('#reportModeSeg .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#reportModeSeg .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    reportMode = btn.dataset.mode;
+    document.getElementById('periodPicker').style.display = reportMode === 'period' ? 'grid' : 'none';
+  });
+});
+
+document.getElementById('reportLoadBtn').addEventListener('click', loadReport);
+document.getElementById('reportPrintBtn').addEventListener('click', () => window.print());
+
+function reportDefaultRange() {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  return { from: first.toISOString().slice(0,10), to: todayStr() };
+}
+(function initReportDates() {
+  const r = reportDefaultRange();
+  document.getElementById('reportFrom').value = r.from;
+  document.getElementById('reportTo').value = r.to;
+})();
+
+async function loadReport() {
+  const content = document.getElementById('reportContent');
+  content.innerHTML = '<div class="loading">กำลังสร้างรายงาน...</div>';
+  try {
+    if (reportMode === 'current') {
+      const [summary, pending] = await Promise.all([api('getSummary'), api('getPendingRepairs')]);
+      content.innerHTML = renderCurrentReport(summary, pending);
+    } else {
+      const from = document.getElementById('reportFrom').value;
+      const to = document.getElementById('reportTo').value;
+      if (!from || !to) { showToast('กรุณาเลือกช่วงวันที่', 'err'); content.innerHTML = ''; return; }
+      const period = await api('getPeriodReport', { date_from: from, date_to: to });
+      content.innerHTML = renderPeriodReport(period);
+    }
+  } catch (e) {
+    content.innerHTML = '<div class="empty-state">สร้างรายงานไม่สำเร็จ: ' + e.message + '</div>';
+  }
+}
+
+function nowStamp() {
+  return new Date().toLocaleString('th-TH', { dateStyle:'medium', timeStyle:'short' });
+}
+
+function renderCurrentReport(summary, pending) {
+  const t = summary.totals;
+  const uptime = t.total_cameras ? Math.round((t.working_cameras / t.total_cameras) * 100) : 0;
+
+  const farmRows = summary.farms.map(f => `
+    <tr>
+      <td>${f.farm_name}</td>
+      <td>${f.total_cameras}</td>
+      <td>${f.working_cameras}</td>
+      <td>${f.broken_cameras}</td>
+      <td>${!f.last_inspected ? '<span class="badge none">ยังไม่ตรวจสอบ</span>' : (Number(f.broken_cameras)>0 ? '<span class="badge bad">รอแก้ไข</span>' : '<span class="badge ok">ปกติ</span>')}</td>
+      <td>${fmtDate(f.inspect_date)}</td>
+    </tr>`).join('');
+
+  const pendingRows = pending.length ? pending.map(p => `
+    <tr>
+      <td>${p.farm_name}</td>
+      <td>${p.broken_cameras}</td>
+      <td>${fmtDate(p.fix_date)}</td>
+      <td>${p.overdue ? '<span class="badge bad">เลยกำหนด</span>' : '<span class="badge warn">รอดำเนินการ</span>'}</td>
+    </tr>`).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted);">ไม่มีรายการ — ทุกศูนย์ปกติดี</td></tr>';
+
+  return `
+    <div class="report-page">
+      <div class="report-head">
+        <div class="org">CPF · MARINE SHRIMP BREEDING BUSINESS UNIT 2 (MSBRC2)</div>
+        <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
+        <div class="period">ข้อมูล ณ ปัจจุบัน · สร้างรายงานเมื่อ ${nowStamp()}</div>
+      </div>
+
+      <div class="report-section">
+        <h3>ภาพรวมทั้งหมด</h3>
+        <div class="kpi-row">
+          <div class="kpi"><div class="k-label">กล้องทั้งหมด</div><div class="k-value">${t.total_cameras}</div></div>
+          <div class="kpi"><div class="k-label">ใช้งานได้</div><div class="k-value">${t.working_cameras}</div></div>
+          <div class="kpi"><div class="k-label">ใช้งานไม่ได้</div><div class="k-value">${t.broken_cameras}</div></div>
+          <div class="kpi"><div class="k-label">อัตราใช้งานได้</div><div class="k-value">${uptime}%</div></div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h3>สถานะรายศูนย์วิจัย</h3>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>ศูนย์วิจัย</th><th>ทั้งหมด</th><th>ใช้งานได้</th><th>เสีย</th><th>สถานะ</th><th>ตรวจล่าสุด</th></tr></thead>
+          <tbody>${farmRows}</tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h3>รายการที่ต้องแก้ไข (${pending.length} รายการ)</h3>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>ศูนย์วิจัย</th><th>จำนวนเสีย</th><th>กำหนดแก้ไข</th><th>สถานะ</th></tr></thead>
+          <tbody>${pendingRows}</tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2</div>
+    </div>`;
+}
+
+function renderPeriodReport(p) {
+  const incidentRows = p.incidents.length ? p.incidents.map(i => `
+    <tr>
+      <td>${fmtDate(i.inspect_date)}</td>
+      <td>${i.farm_name}</td>
+      <td>${i.broken_cameras}</td>
+      <td>${i.fix_plan || '-'}</td>
+      <td>${fmtDate(i.fix_date)}</td>
+      <td>${
+        i.status === 'แก้ไขแล้ว' ? '<span class="badge ok">แก้ไขแล้ว (' + fmtDate(i.resolved_date) + ')</span>' :
+        i.status === 'เลยกำหนดแก้ไข' ? '<span class="badge bad">เลยกำหนดแก้ไข</span>' :
+        '<span class="badge warn">ยังไม่แก้ไข</span>'
+      }</td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted);">ไม่พบอุบัติการณ์กล้องเสียในช่วงเวลานี้</td></tr>';
+
+  const activityRows = p.farm_activity.map(f => `
+    <tr>
+      <td>${f.farm_name}</td>
+      <td>${f.inspections_count}</td>
+      <td>${f.incidents_count}</td>
+    </tr>`).join('');
+
+  return `
+    <div class="report-page">
+      <div class="report-head">
+        <div class="org">CPF · MARINE SHRIMP BREEDING BUSINESS UNIT 2 (MSBRC2)</div>
+        <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
+        <div class="period">ช่วงเวลา ${fmtDate(p.date_from)} — ${fmtDate(p.date_to)} · สร้างรายงานเมื่อ ${nowStamp()}</div>
+      </div>
+
+      <div class="report-section">
+        <h3>สรุปช่วงเวลา</h3>
+        <div class="kpi-row">
+          <div class="kpi"><div class="k-label">ตรวจสอบทั้งหมด</div><div class="k-value">${p.total_inspections}</div></div>
+          <div class="kpi"><div class="k-label">พบอุบัติการณ์</div><div class="k-value">${p.total_incidents}</div></div>
+          <div class="kpi"><div class="k-label">แก้ไขแล้ว</div><div class="k-value">${p.resolved_count}</div></div>
+          <div class="kpi"><div class="k-label">เลยกำหนด/ยังไม่แก้</div><div class="k-value">${p.overdue_count + p.pending_count}</div></div>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h3>จำนวนครั้งที่ตรวจสอบ/พบปัญหา รายศูนย์</h3>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>ศูนย์วิจัย</th><th>จำนวนครั้งที่ตรวจสอบ</th><th>จำนวนครั้งที่พบปัญหา</th></tr></thead>
+          <tbody>${activityRows}</tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="report-section">
+        <h3>รายละเอียดอุบัติการณ์ในช่วงเวลานี้</h3>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>วันที่พบ</th><th>ศูนย์วิจัย</th><th>จำนวนเสีย</th><th>แนวทางแก้ไข</th><th>กำหนดแก้ไข</th><th>สถานะ</th></tr></thead>
+          <tbody>${incidentRows}</tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2</div>
+    </div>`;
+}
 
 // ---------- PWA: register service worker ----------
 if ('serviceWorker' in navigator) {
