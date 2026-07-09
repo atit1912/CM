@@ -1,0 +1,15 @@
+{
+  "name": "CCTV Monitor - MSBRC2",
+  "short_name": "CCTV Monitor",
+  "description": "ระบบตรวจสอบสถานะกล้องวงจรปิด MSBRC2",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e1214",
+  "theme_color": "#0e1214",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

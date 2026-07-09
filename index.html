@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<title>CCTV Monitor — MSBRC2</title>
+<meta name="theme-color" content="#0e1214">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CCTV Monitor">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1214;
+    --panel:#161b1e;
+    --panel-2:#1c2226;
+    --line:#262e33;
+    --text:#e7ebed;
+    --muted:#8b9aa3;
+    --mono:'IBM Plex Mono',monospace;
+    --disp:'Space Grotesk',sans-serif;
+    --thai:'Noto Sans Thai','Space Grotesk',sans-serif;
+    --ok:#3ddc84;
+    --ok-dim:#193226;
+    --bad:#ff5d5d;
+    --bad-dim:#331c1c;
+    --warn:#ffb648;
+    --warn-dim:#332911;
+    --accent:#4fd1ff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--thai);
+    -webkit-font-smoothing:antialiased;
+  }
+  .scanline{
+    position:fixed; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity:.5; animation:scan 6s linear infinite; z-index:50; pointer-events:none;
+  }
+  @keyframes scan{0%{top:0%}100%{top:100%}}
+
+  header{
+    padding:14px 16px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    position:sticky; top:0; background:var(--bg); z-index:40;
+    padding-top:calc(14px + env(safe-area-inset-top));
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0;}
+  .brand .dot{
+    width:9px;height:9px;border-radius:50%;background:var(--ok); flex:none;
+    box-shadow:0 0 10px var(--ok); animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .brand h1{font-family:var(--disp); font-size:16px; margin:0; letter-spacing:.3px; white-space:nowrap;}
+  .brand small{color:var(--muted); font-family:var(--mono); font-size:9px; letter-spacing:.5px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .clock{font-family:var(--mono); color:var(--muted); font-size:11px; text-align:right; flex:none;}
+  .clock b{color:var(--accent); display:block; font-size:13px;}
+  .clock .d{display:none;}
+
+  /* Bottom tab bar — ออกแบบให้ใช้งานสะดวกด้วยนิ้วโป้งบนมือถือ */
+  nav{
+    display:flex; gap:2px;
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:var(--panel); border-top:1px solid var(--line);
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+    box-shadow:0 -4px 20px rgba(0,0,0,.35);
+  }
+  nav button{
+    flex:1; background:none; border:none; color:var(--muted); font-family:var(--thai); font-weight:600;
+    font-size:11px; padding:9px 4px 7px; cursor:pointer; border-radius:10px; transition:.15s;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  nav button .ic{font-size:19px; line-height:1;}
+  nav button.active{color:var(--accent); background:#0d2530;}
+
+  main{padding:14px 14px calc(88px + env(safe-area-inset-bottom)); max-width:720px; margin:0 auto;}
+  @media(min-width:900px){ main{max-width:1180px;} }
+  .view{display:none;}
+  .view.active{display:block; animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px)}to{opacity:1; transform:none}}
+
+  .grid{display:grid; gap:12px;}
+  .g-stats{grid-template-columns:repeat(2,1fr);}
+  .g-2{grid-template-columns:1fr;}
+  .g-farms{grid-template-columns:1fr;}
+  @media(min-width:640px){ .g-farms{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));} }
+  @media(min-width:820px){ .g-stats{grid-template-columns:repeat(4,1fr);} .g-2{grid-template-columns:2fr 1fr;} }
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px;
+  }
+  .stat{padding:16px 18px;}
+  .stat .label{font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase;}
+  .stat .value{font-family:var(--disp); font-size:32px; font-weight:700; margin-top:6px;}
+  .stat .value.ok{color:var(--ok);}
+  .stat .value.bad{color:var(--bad);}
+  .stat .sub{font-size:12px; color:var(--muted); margin-top:4px;}
+
+  h2.section-title{font-family:var(--disp); font-size:16px; margin:26px 0 12px; color:var(--text); display:flex; align-items:center; gap:8px;}
+  h2.section-title .n{font-family:var(--mono); color:var(--accent); font-size:12px; border:1px solid var(--line); padding:2px 7px; border-radius:20px;}
+
+  .farm-card{
+    border-left:3px solid var(--line); position:relative; overflow:hidden;
+  }
+  .farm-card.status-ok{border-left-color:var(--ok);}
+  .farm-card.status-bad{border-left-color:var(--bad);}
+  .farm-card.status-none{border-left-color:var(--muted);}
+  .farm-card .fname{font-weight:600; font-size:14px; margin-bottom:10px;}
+  .farm-card .frow{display:flex; justify-content:space-between; font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:4px;}
+  .farm-card .frow b{color:var(--text); font-size:13px;}
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px;
+    padding:3px 9px; border-radius:20px; font-weight:600; letter-spacing:.3px;
+  }
+  .badge.ok{background:var(--ok-dim); color:var(--ok);}
+  .badge.bad{background:var(--bad-dim); color:var(--bad);}
+  .badge.warn{background:var(--warn-dim); color:var(--warn);}
+  .badge.none{background:#22282b; color:var(--muted);}
+
+  .pending-item{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:12px 14px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; background:var(--panel-2);
+  }
+  .pending-item.overdue{border-color:var(--bad); background:var(--bad-dim);}
+  .pending-item .pname{font-weight:600; font-size:13px;}
+  .pending-item .pmeta{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:3px;}
+
+  form .row{display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:14px;}
+  @media(min-width:640px){ form .row{grid-template-columns:1fr 1fr;} form .row.full{grid-template-columns:1fr;} }
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-family:var(--mono); letter-spacing:.3px;}
+  input,select,textarea{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:12px 12px; border-radius:7px; font-family:var(--thai); font-size:16px;
+  }
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent);}
+  textarea{resize:vertical; min-height:70px;}
+  select{appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9'><path d='M1 1l6 6 6-6' stroke='%238b9aa3' fill='none' stroke-width='2'/></svg>"); background-repeat:no-repeat; background-position:right 12px center; padding-right:34px;}
+
+  .farm-picker{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:18px;}
+  @media(min-width:640px){ .farm-picker{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));} }
+  .farm-picker .fp{
+    border:1px solid var(--line); background:var(--panel-2); padding:14px 10px; border-radius:8px;
+    cursor:pointer; text-align:center; font-size:12.5px; font-weight:600; transition:.15s; line-height:1.3;
+  }
+  .farm-picker .fp.selected{border-color:var(--accent); background:#0d2530; color:var(--accent);}
+  .inspector-other{display:none; margin-top:10px;}
+
+  .calc-box{
+    display:flex; gap:14px; padding:14px; background:var(--panel-2); border-radius:8px; margin:6px 0 18px;
+    font-family:var(--mono); font-size:13px; flex-wrap:wrap;
+  }
+  .calc-box div{display:flex; align-items:center; gap:6px;}
+  .calc-box .n{font-size:18px; font-weight:700;}
+
+  .fix-block{
+    border:1px dashed var(--bad); background:var(--bad-dim); border-radius:8px; padding:16px; margin-bottom:14px;
+  }
+  .fix-block .ft{font-family:var(--mono); color:var(--bad); font-size:12px; margin-bottom:12px; letter-spacing:.5px;}
+
+  button.submit{
+    background:var(--accent); color:#00252e; border:none; font-weight:700; font-family:var(--thai);
+    padding:13px 26px; border-radius:8px; cursor:pointer; font-size:15px; transition:.15s;
+  }
+  button.submit:hover{filter:brightness(1.1);}
+  button.submit:disabled{opacity:.5; cursor:not-allowed;}
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel); border:1px solid var(--line); padding:13px 22px; border-radius:8px;
+    font-size:14px; opacity:0; transition:.25s; z-index:100; box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast.ok{border-color:var(--ok); color:var(--ok);}
+  .toast.err{border-color:var(--bad); color:var(--bad);}
+
+  .filters{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
+  .filters .full-row{grid-column:1/-1;}
+  @media(min-width:640px){ .filters{grid-template-columns:1fr 1fr 1fr auto;} .filters .full-row{grid-column:auto;} }
+  .btn-secondary{
+    background:var(--panel-2); color:var(--text); border:1px solid var(--line); font-weight:600; font-family:var(--thai);
+    padding:12px 18px; border-radius:8px; cursor:pointer; font-size:14px; white-space:nowrap;
+  }
+  .btn-secondary:hover{border-color:var(--accent); color:var(--accent);}
+  .btn-row{display:flex; gap:8px;}
+  .btn-row .submit, .btn-row .btn-secondary{flex:1;}
+
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  th,td{padding:10px 10px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap;}
+  th{font-family:var(--mono); font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
+  tr:hover td{background:var(--panel-2);}
+  .empty-state{text-align:center; padding:40px 20px; color:var(--muted); font-size:13px;}
+  .empty-state .icon{font-size:32px; margin-bottom:10px;}
+
+  .chart-wrap{position:relative; height:240px;}
+  .loading{color:var(--muted); font-family:var(--mono); font-size:12px; text-align:center; padding:30px;}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <div style="min-width:0;">
+      <h1>CCTV MONITOR</h1>
+      <small>MSBRC2 · กล้องวงจรปิด</small>
+    </div>
+  </div>
+  <div class="clock" id="clock"></div>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-view="form"><span class="ic">📋</span>กรอกข้อมูล</button>
+  <button class="tab-btn" data-view="dashboard"><span class="ic">📊</span>แดชบอร์ด</button>
+  <button class="tab-btn" data-view="history"><span class="ic">🕘</span>ประวัติ</button>
+</nav>
+
+<main>
+
+  <!-- ================= FORM VIEW ================= -->
+  <section class="view active" id="view-form">
+    <h2 class="section-title">เลือกศูนย์วิจัย</h2>
+    <div class="farm-picker" id="farmPicker"></div>
+
+    <form id="inspectForm">
+      <div class="row">
+        <div>
+          <label>วัน/เดือน/ปี ที่ตรวจสอบ</label>
+          <input type="date" id="inspectDate" required>
+        </div>
+        <div>
+          <label>ผู้ตรวจสอบ</label>
+          <select id="inspector" required>
+            <option value="">— เลือกผู้ตรวจสอบ —</option>
+          </select>
+          <div class="inspector-other" id="inspectorOtherWrap">
+            <input type="text" id="inspectorOther" placeholder="ระบุชื่อ-นามสกุล">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>จำนวนกล้องวงจรปิดทั้งหมดภายในศูนย์วิจัย (ตัว)</label>
+          <input type="number" id="totalCameras" min="0" required>
+        </div>
+        <div>
+          <label>จำนวนกล้องวงจรปิดที่สามารถใช้งานได้ (ตัว)</label>
+          <input type="number" id="workingCameras" min="0" required>
+        </div>
+      </div>
+
+      <div class="calc-box">
+        <div>ใช้งานไม่ได้: <span class="n" id="calcBroken" style="color:var(--ok)">0</span> ตัว</div>
+        <div id="calcStatusWrap"><span class="badge ok" id="calcStatus">ปกติ</span></div>
+      </div>
+
+      <div id="fixBlock" class="fix-block" style="display:none">
+        <div class="ft">⚠ พบกล้องใช้งานไม่ได้ — กรุณาระบุรายละเอียดแนวทางแก้ไข</div>
+        <div class="row full">
+          <div>
+            <label>ระบุกล้องที่ใช้งานไม่ได้ (จุดติดตั้ง/หมายเลข)</label>
+            <textarea id="brokenDetail" placeholder="เช่น กล้องหน้าโกดัง 2 ตัว, กล้องประตูทางเข้า"></textarea>
+          </div>
+        </div>
+        <div class="row full">
+          <div>
+            <label>สรุปแนวทางการแก้ไข</label>
+            <textarea id="fixPlan" placeholder="เช่น แจ้งช่างซ่อม/เปลี่ยนอุปกรณ์"></textarea>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>กำหนดวันที่คาดว่าจะแก้ไขเรียบร้อย</label>
+            <input type="date" id="fixDate">
+          </div>
+        </div>
+      </div>
+
+      <div class="row full">
+        <div>
+          <label>หมายเหตุ</label>
+          <textarea id="note" placeholder="(ถ้ามี)"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="submit" id="submitBtn">บันทึกผลตรวจสอบ</button>
+    </form>
+  </section>
+
+  <!-- ================= DASHBOARD VIEW ================= -->
+  <section class="view" id="view-dashboard">
+    <div class="grid g-stats" id="statCards">
+      <div class="card stat"><div class="label">กำลังโหลด...</div></div>
+    </div>
+
+    <h2 class="section-title">สถานะรายศูนย์วิจัย <span class="n" id="farmCount">0/5</span></h2>
+    <div class="grid g-farms" id="farmGrid"></div>
+
+    <h2 class="section-title">🚨 รายการที่ต้องแก้ไข</h2>
+    <div id="pendingList" class="card"><div class="loading">กำลังโหลดข้อมูล...</div></div>
+
+    <h2 class="section-title">ภาพรวมกล้องทั้งหมด</h2>
+    <div class="grid g-2">
+      <div class="card"><div class="chart-wrap"><canvas id="chartBar"></canvas></div></div>
+      <div class="card"><div class="chart-wrap"><canvas id="chartDonut"></canvas></div></div>
+    </div>
+  </section>
+
+  <!-- ================= HISTORY VIEW ================= -->
+  <section class="view" id="view-history">
+    <div class="filters card">
+      <div>
+        <label>ศูนย์วิจัย</label>
+        <select id="filterFarm"><option value="">ทั้งหมด</option></select>
+      </div>
+      <div>
+        <label>จากวันที่</label>
+        <input type="date" id="filterFrom">
+      </div>
+      <div>
+        <label>ถึงวันที่</label>
+        <input type="date" id="filterTo">
+      </div>
+      <div class="full-row btn-row">
+        <button class="submit" id="filterBtn">กรองข้อมูล</button>
+        <button class="btn-secondary" id="exportBtn">⬇ Excel</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-scroll">
+      <table id="historyTable">
+        <thead>
+          <tr><th>วันที่ตรวจ</th><th>ศูนย์วิจัย</th><th>ทั้งหมด</th><th>ใช้งานได้</th><th>ใช้งานไม่ได้</th><th>สถานะ</th><th>ผู้ตรวจสอบ</th></tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+      </div>
+      <div id="historyEmpty" class="empty-state" style="display:none">
+        <div class="icon">🗃️</div>ยังไม่มีข้อมูลการตรวจสอบ
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= CONFIG =================
+   วาง Web App URL ของ Google Apps Script ตรงนี้ (หลัง deploy แล้ว) */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbycIKh0rSvgwxuPJg_kdFg5SGpIk1R6esiPoIfz-scbvt0XoJFyH_i0DJm14ZNejVj_/exec';
+/* ============================================ */
+
+let FARMS = [];
+let INSPECTORS = ['อธิศ ฉิมนันท์', 'กิตติ สุขมา'];
+let selectedFarm = null;
+let charts = {};
+
+// ---------- Utility ----------
+function api(action, params = {}) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set('action', action);
+  Object.keys(params).forEach(k => {
+    if (params[k] !== undefined && params[k] !== null && params[k] !== '') {
+      url.searchParams.set(k, typeof params[k] === 'object' ? JSON.stringify(params[k]) : params[k]);
+    }
+  });
+  return fetch(url.toString())
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) throw new Error(res.error || 'เกิดข้อผิดพลาด');
+      return res.data;
+    });
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function showToast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast ' + type, 2600);
+}
+
+function fmtDate(s) {
+  if (!s) return '-';
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' });
+}
+
+// ---------- Clock ----------
+function tickClock() {
+  const now = new Date();
+  document.getElementById('clock').innerHTML =
+    now.toLocaleDateString('th-TH',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) +
+    ' &nbsp;<b>' + now.toLocaleTimeString('th-TH') + '</b>';
+}
+setInterval(tickClock, 1000); tickClock();
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+    if (btn.dataset.view === 'dashboard') loadDashboard();
+    if (btn.dataset.view === 'history') loadHistory();
+  });
+});
+
+// ---------- Init ----------
+async function init() {
+  document.getElementById('inspectDate').value = todayStr();
+  try {
+    const meta = await api('getMeta');
+    FARMS = meta.farms;
+    if (meta.inspectors && meta.inspectors.length) INSPECTORS = meta.inspectors;
+  } catch (e) {
+    // fallback รายชื่อศูนย์ (คงที่) ถ้าเรียก API ไม่สำเร็จตอนเริ่มต้น
+    FARMS = [
+      { code:'farm_hk', name:'ศูนย์วิจัยหัวกุญแจ', total_cameras:16 },
+      { code:'farm_rs', name:'ศูนย์วิจัยไร่สาม', total_cameras:18 },
+      { code:'farm_hj', name:'ศูนย์วิจัยหาดเจ้า', total_cameras:12 },
+      { code:'farm_pb', name:'ศูนย์วิจัยเพชรบุรี', total_cameras:16 },
+      { code:'farm_pps', name:'ศูนย์ปรับปรุงพันธุ์สัตว์น้ำหาดเจ้า', total_cameras:16 }
+    ];
+  }
+  renderFarmPicker();
+  renderFilterFarms();
+  renderInspectorSelect();
+}
+
+function renderFarmPicker() {
+  const wrap = document.getElementById('farmPicker');
+  wrap.innerHTML = '';
+  FARMS.forEach(f => {
+    const el = document.createElement('div');
+    el.className = 'fp';
+    el.textContent = f.name;
+    el.dataset.code = f.code;
+    el.addEventListener('click', () => {
+      selectedFarm = f;
+      document.querySelectorAll('.fp').forEach(x => x.classList.remove('selected'));
+      el.classList.add('selected');
+      // ใส่จำนวนกล้องทั้งหมดให้อัตโนมัติจากค่าตั้งต้นของศูนย์นี้ (แก้ไขได้ถ้าจำนวนจริงเปลี่ยนไป)
+      if (f.total_cameras !== undefined && f.total_cameras !== null) {
+        document.getElementById('totalCameras').value = f.total_cameras;
+        updateCalc();
+      }
+    });
+    wrap.appendChild(el);
+  });
+}
+
+function renderFilterFarms() {
+  const sel = document.getElementById('filterFarm');
+  FARMS.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.code; opt.textContent = f.name;
+    sel.appendChild(opt);
+  });
+}
+
+function renderInspectorSelect() {
+  const sel = document.getElementById('inspector');
+  INSPECTORS.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  const otherOpt = document.createElement('option');
+  otherOpt.value = '__other__'; otherOpt.textContent = 'อื่นๆ (ระบุ)';
+  sel.appendChild(otherOpt);
+
+  sel.addEventListener('change', () => {
+    const wrap = document.getElementById('inspectorOtherWrap');
+    wrap.style.display = sel.value === '__other__' ? 'block' : 'none';
+  });
+}
+
+function getInspectorValue() {
+  const sel = document.getElementById('inspector');
+  if (sel.value === '__other__') return document.getElementById('inspectorOther').value.trim();
+  return sel.value;
+}
+
+// ---------- Form logic ----------
+function updateCalc() {
+  const total = Number(document.getElementById('totalCameras').value) || 0;
+  const working = Number(document.getElementById('workingCameras').value) || 0;
+  const broken = total - working;
+  const el = document.getElementById('calcBroken');
+  el.textContent = broken < 0 ? '—' : broken;
+  el.style.color = broken > 0 ? 'var(--bad)' : 'var(--ok)';
+
+  const statusEl = document.getElementById('calcStatus');
+  const fixBlock = document.getElementById('fixBlock');
+  if (broken > 0) {
+    statusEl.className = 'badge bad'; statusEl.textContent = 'พบกล้องเสีย';
+    fixBlock.style.display = 'block';
+  } else {
+    statusEl.className = 'badge ok'; statusEl.textContent = 'ปกติ';
+    fixBlock.style.display = 'none';
+  }
+}
+document.getElementById('totalCameras').addEventListener('input', updateCalc);
+document.getElementById('workingCameras').addEventListener('input', updateCalc);
+
+document.getElementById('inspectForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!selectedFarm) { showToast('กรุณาเลือกศูนย์วิจัยก่อน', 'err'); return; }
+
+  const total = Number(document.getElementById('totalCameras').value);
+  const working = Number(document.getElementById('workingCameras').value);
+  if (working > total) { showToast('จำนวนที่ใช้งานได้ ต้องไม่มากกว่าจำนวนทั้งหมด', 'err'); return; }
+
+  const broken = total - working;
+  if (broken > 0) {
+    if (!document.getElementById('fixPlan').value.trim() || !document.getElementById('fixDate').value) {
+      showToast('กรุณาระบุแนวทางแก้ไขและกำหนดวันที่แก้ไข', 'err');
+      return;
+    }
+  }
+
+  const inspectorName = getInspectorValue();
+  if (!inspectorName) { showToast('กรุณาเลือก/ระบุชื่อผู้ตรวจสอบ', 'err'); return; }
+
+  const payload = {
+    farm_code: selectedFarm.code,
+    inspect_date: document.getElementById('inspectDate').value,
+    total_cameras: total,
+    working_cameras: working,
+    broken_detail: document.getElementById('brokenDetail').value,
+    fix_plan: document.getElementById('fixPlan').value,
+    fix_date: document.getElementById('fixDate').value,
+    inspector: inspectorName,
+    note: document.getElementById('note').value
+  };
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  try {
+    await api('submitRecord', { payload });
+    showToast('บันทึกผลตรวจสอบเรียบร้อย', 'ok');
+    document.getElementById('inspectForm').reset();
+    document.getElementById('inspectDate').value = todayStr();
+    document.querySelectorAll('.fp').forEach(x => x.classList.remove('selected'));
+    selectedFarm = null;
+    document.getElementById('inspectorOtherWrap').style.display = 'none';
+    updateCalc();
+  } catch (err) {
+    showToast(err.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'บันทึกผลตรวจสอบ';
+  }
+});
+
+// ---------- Dashboard ----------
+async function loadDashboard() {
+  document.getElementById('statCards').innerHTML = '<div class="card stat"><div class="label">กำลังโหลด...</div></div>';
+  document.getElementById('pendingList').innerHTML = '<div class="loading">กำลังโหลดข้อมูล...</div>';
+  try {
+    const [summary, pending] = await Promise.all([api('getSummary'), api('getPendingRepairs')]);
+    renderStats(summary);
+    renderFarmGrid(summary.farms);
+    renderPending(pending);
+    renderCharts(summary);
+  } catch (e) {
+    document.getElementById('statCards').innerHTML = '<div class="card stat">โหลดข้อมูลไม่สำเร็จ: ' + e.message + '</div>';
+  }
+}
+
+function renderStats(summary) {
+  const t = summary.totals;
+  const uptime = t.total_cameras ? Math.round((t.working_cameras / t.total_cameras) * 100) : 0;
+  document.getElementById('statCards').innerHTML = `
+    <div class="card stat"><div class="label">กล้องทั้งหมด</div><div class="value">${t.total_cameras}</div><div class="sub">5 ศูนย์วิจัย</div></div>
+    <div class="card stat"><div class="label">ใช้งานได้</div><div class="value ok">${t.working_cameras}</div><div class="sub">ตัว</div></div>
+    <div class="card stat"><div class="label">ใช้งานไม่ได้</div><div class="value ${t.broken_cameras>0?'bad':''}">${t.broken_cameras}</div><div class="sub">ตัว</div></div>
+    <div class="card stat"><div class="label">อัตราใช้งานได้</div><div class="value ${uptime<100?'bad':'ok'}">${uptime}%</div><div class="sub">Uptime</div></div>
+  `;
+}
+
+function renderFarmGrid(farms) {
+  document.getElementById('farmCount').textContent = farms.filter(f=>f.last_inspected).length + '/' + farms.length;
+  document.getElementById('farmGrid').innerHTML = farms.map(f => {
+    const statusClass = !f.last_inspected ? 'status-none' : (Number(f.broken_cameras) > 0 ? 'status-bad' : 'status-ok');
+    const badge = !f.last_inspected
+      ? '<span class="badge none">ยังไม่เคยตรวจสอบ</span>'
+      : (Number(f.broken_cameras) > 0 ? '<span class="badge bad">รอแก้ไข</span>' : '<span class="badge ok">ปกติ</span>');
+    return `
+      <div class="card farm-card ${statusClass}">
+        <div class="fname">${f.farm_name}</div>
+        ${badge}
+        <div class="frow"><span>ทั้งหมด</span><b>${f.total_cameras}</b></div>
+        <div class="frow"><span>ใช้งานได้</span><b>${f.working_cameras}</b></div>
+        <div class="frow"><span>เสีย</span><b>${f.broken_cameras}</b></div>
+        <div class="frow"><span>ตรวจล่าสุด</span><b>${fmtDate(f.inspect_date)}</b></div>
+      </div>`;
+  }).join('');
+}
+
+function renderPending(pending) {
+  const wrap = document.getElementById('pendingList');
+  if (!pending.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="icon">✅</div>ไม่มีรายการที่ต้องแก้ไข ทุกศูนย์ปกติดี</div>';
+    return;
+  }
+  wrap.innerHTML = pending.map(p => `
+    <div class="pending-item ${p.overdue ? 'overdue':''}">
+      <div>
+        <div class="pname">${p.farm_name}</div>
+        <div class="pmeta">เสีย ${p.broken_cameras} ตัว · กำหนดแก้ไข ${fmtDate(p.fix_date)}</div>
+      </div>
+      ${p.overdue ? '<span class="badge bad">เลยกำหนด</span>' : '<span class="badge warn">รอดำเนินการ</span>'}
+    </div>
+  `).join('');
+}
+
+function renderCharts(summary) {
+  const farms = summary.farms;
+  if (charts.bar) charts.bar.destroy();
+  if (charts.donut) charts.donut.destroy();
+
+  charts.bar = new Chart(document.getElementById('chartBar'), {
+    type: 'bar',
+    data: {
+      labels: farms.map(f => f.farm_name.replace('ศูนย์วิจัย','').replace('ศูนย์ปรับปรุงพันธุ์สัตว์น้ำ','')),
+      datasets: [
+        { label: 'ใช้งานได้', data: farms.map(f=>f.working_cameras), backgroundColor: '#3ddc84', borderRadius:4 },
+        { label: 'เสีย', data: farms.map(f=>f.broken_cameras), backgroundColor: '#ff5d5d', borderRadius:4 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{stacked:true, ticks:{color:'#8b9aa3'}, grid:{color:'#262e33'}}, y:{stacked:true, ticks:{color:'#8b9aa3'}, grid:{color:'#262e33'}} },
+      plugins:{legend:{labels:{color:'#e7ebed'}}}
+    }
+  });
+
+  charts.donut = new Chart(document.getElementById('chartDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['ใช้งานได้','เสีย'],
+      datasets:[{ data:[summary.totals.working_cameras, summary.totals.broken_cameras], backgroundColor:['#3ddc84','#ff5d5d'], borderWidth:0 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{color:'#e7ebed'}}} }
+  });
+}
+
+// ---------- History ----------
+let lastHistoryRecords = [];
+
+async function loadHistory() {
+  const farm_code = document.getElementById('filterFarm').value;
+  const date_from = document.getElementById('filterFrom').value;
+  const date_to = document.getElementById('filterTo').value;
+  const tbody = document.getElementById('historyBody');
+  tbody.innerHTML = '<tr><td colspan="7" class="loading">กำลังโหลดข้อมูล...</td></tr>';
+  try {
+    const records = await api('getRecords', { farm_code, date_from, date_to });
+    lastHistoryRecords = records;
+    document.getElementById('historyEmpty').style.display = records.length ? 'none' : 'block';
+    tbody.innerHTML = records.map(r => `
+      <tr>
+        <td>${fmtDate(r.inspect_date)}</td>
+        <td>${r.farm_name}</td>
+        <td>${r.total_cameras}</td>
+        <td>${r.working_cameras}</td>
+        <td>${r.broken_cameras}</td>
+        <td>${Number(r.broken_cameras)>0 ? '<span class="badge bad">รอแก้ไข</span>' : '<span class="badge ok">ปกติ</span>'}</td>
+        <td>${r.inspector || '-'}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="loading">โหลดข้อมูลไม่สำเร็จ: ' + e.message + '</td></tr>';
+  }
+}
+document.getElementById('filterBtn').addEventListener('click', loadHistory);
+
+// ---------- Export Excel ----------
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!lastHistoryRecords.length) { showToast('ไม่มีข้อมูลให้ export', 'err'); return; }
+
+  const rows = lastHistoryRecords.map(r => ({
+    'วัน/เดือน/ปี': fmtDate(r.inspect_date),
+    'ศูนย์วิจัย': r.farm_name,
+    'จำนวนกล้องทั้งหมด (ตัว)': r.total_cameras,
+    'ใช้งานได้ (ตัว)': r.working_cameras,
+    'ใช้งานไม่ได้ (ตัว)': r.broken_cameras,
+    'รายละเอียดกล้องเสีย': r.broken_detail || '-',
+    'แนวทางแก้ไข': r.fix_plan || '-',
+    'กำหนดวันแก้ไข': r.fix_date || '-',
+    'สถานะ': Number(r.broken_cameras) > 0 ? 'รอแก้ไข' : 'ปกติ',
+    'ผู้ตรวจสอบ': r.inspector || '-',
+    'หมายเหตุ': r.note || '-'
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'รายงานตรวจสอบกล้อง');
+  const dateTag = todayStr();
+  XLSX.writeFile(wb, `รายงานกล้องวงจรปิด_MSBRC2_${dateTag}.xlsx`);
+});
+
+// ---------- PWA: register service worker ----------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
+
+init();
+</script>
+</body>
+</html>
