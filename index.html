@@ -190,8 +190,9 @@
     padding:12px 18px; border-radius:8px; cursor:pointer; font-size:14px; white-space:nowrap;
   }
   .btn-secondary:hover{border-color:var(--accent); color:var(--accent);}
-  .btn-row{display:flex; gap:8px;}
-  .btn-row .submit, .btn-row .btn-secondary{flex:1;}
+  .btn-secondary.danger:hover{border-color:var(--bad); color:var(--bad);}
+  .btn-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .btn-row .submit, .btn-row .btn-secondary{flex:1; min-width:110px;}
 
   table{width:100%; border-collapse:collapse; font-size:12.5px;}
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
@@ -378,6 +379,7 @@
       <div class="full-row btn-row">
         <button class="submit" id="filterBtn">กรองข้อมูล</button>
         <button class="btn-secondary" id="exportBtn">⬇ Excel</button>
+        <button class="btn-secondary danger" id="clearBtn">🗑️ ล้างประวัติ</button>
       </div>
     </div>
     <div class="card">
@@ -968,6 +970,26 @@ function renderPeriodReport(p) {
       <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2</div>
     </div>`;
 }
+
+// ---------- Clear all records (สำหรับทดสอบ) ----------
+document.getElementById('clearBtn').addEventListener('click', async () => {
+  const confirmText = prompt('การลบนี้จะล้างประวัติการตรวจสอบ "ทั้งหมด" ทุกศูนย์ และกู้คืนไม่ได้\n\nพิมพ์คำว่า "ลบ" เพื่อยืนยัน:');
+  if (confirmText !== 'ลบ') {
+    if (confirmText !== null) showToast('ยกเลิกการลบ (พิมพ์ไม่ตรง)', 'err');
+    return;
+  }
+  const btn = document.getElementById('clearBtn');
+  btn.disabled = true; btn.textContent = 'กำลังลบ...';
+  try {
+    const res = await api('clearAllRecords');
+    showToast(`ล้างประวัติเรียบร้อย (ลบ ${res.rows_removed} รายการ)`, 'ok');
+    loadHistory();
+  } catch (e) {
+    showToast('ลบไม่สำเร็จ: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '🗑️ ล้างประวัติ';
+  }
+});
 
 // ---------- PWA: register service worker ----------
 if ('serviceWorker' in navigator) {
