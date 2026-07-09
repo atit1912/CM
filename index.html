@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
 <title>CCTV Monitor — MSBRC2</title>
-<meta name="theme-color" content="#0e1214">
+<meta name="theme-color" content="#0a0e13">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,26 +18,40 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
-    --bg:#0e1214;
-    --panel:#161b1e;
-    --panel-2:#1c2226;
-    --line:#262e33;
-    --text:#e7ebed;
-    --muted:#8b9aa3;
+    --bg:#0a0e13;
+    --bg-grad: radial-gradient(1200px 600px at 15% -10%, #0f2530 0%, transparent 60%),
+               radial-gradient(900px 500px at 110% 10%, #1a1230 0%, transparent 55%),
+               #0a0e13;
+    --panel:#131922;
+    --panel-2:#19212b;
+    --panel-3:#1e2733;
+    --line:#26313d;
+    --line-soft:#1d2530;
+    --text:#eef2f5;
+    --muted:#8b98a5;
     --mono:'IBM Plex Mono',monospace;
     --disp:'Space Grotesk',sans-serif;
     --thai:'Noto Sans Thai','Space Grotesk',sans-serif;
-    --ok:#3ddc84;
-    --ok-dim:#193226;
-    --bad:#ff5d5d;
-    --bad-dim:#331c1c;
-    --warn:#ffb648;
-    --warn-dim:#332911;
+    --ok:#34e0a1;
+    --ok-dim:#122a20;
+    --bad:#ff6b81;
+    --bad-dim:#341621;
+    --warn:#ffc247;
+    --warn-dim:#332611;
     --accent:#4fd1ff;
+    --accent-2:#a78bfa;
+    --grad-accent: linear-gradient(135deg, var(--accent), var(--accent-2));
+    --grad-ok: linear-gradient(135deg, #34e0a1, #22b8a3);
+    --grad-bad: linear-gradient(135deg, #ff6b81, #ff4f7d);
+    --grad-warn: linear-gradient(135deg, #ffc247, #ff9d47);
+    --shadow-sm: 0 2px 10px rgba(0,0,0,.25);
+    --shadow-md: 0 8px 28px rgba(0,0,0,.35);
+    --shadow-glow: 0 0 0 1px rgba(79,209,255,.15), 0 8px 24px rgba(79,209,255,.12);
+    --radius: 14px;
   }
   *{box-sizing:border-box;}
   body{
-    margin:0; background:var(--bg); color:var(--text);
+    margin:0; background:var(--bg-grad); background-attachment:fixed; color:var(--text);
     font-family:var(--thai);
     -webkit-font-smoothing:antialiased;
   }
@@ -51,13 +65,17 @@
   header{
     padding:14px 16px; border-bottom:1px solid var(--line);
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    position:sticky; top:0; background:var(--bg); z-index:40;
+    position:sticky; top:0; background:rgba(10,14,19,.85); backdrop-filter:blur(10px); z-index:40;
     padding-top:calc(14px + env(safe-area-inset-top));
   }
   .brand{display:flex; align-items:center; gap:10px; min-width:0;}
+  .brand .icon-badge{
+    width:34px; height:34px; border-radius:10px; flex:none; display:flex; align-items:center; justify-content:center;
+    background:var(--grad-accent); font-size:17px; box-shadow:var(--shadow-glow);
+  }
   .brand .dot{
-    width:9px;height:9px;border-radius:50%;background:var(--ok); flex:none;
-    box-shadow:0 0 10px var(--ok); animation:pulse 2s ease-in-out infinite;
+    width:8px;height:8px;border-radius:50%;background:var(--ok); flex:none;
+    box-shadow:0 0 8px var(--ok), 0 0 2px var(--ok); animation:pulse 2s ease-in-out infinite;
   }
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .brand h1{font-family:var(--disp); font-size:16px; margin:0; letter-spacing:.3px; white-space:nowrap;}
@@ -70,17 +88,18 @@
   nav{
     display:flex; gap:2px;
     position:fixed; left:0; right:0; bottom:0; z-index:50;
-    background:var(--panel); border-top:1px solid var(--line);
+    background:rgba(19,25,34,.92); backdrop-filter:blur(10px); border-top:1px solid var(--line);
     padding:6px 6px calc(6px + env(safe-area-inset-bottom));
-    box-shadow:0 -4px 20px rgba(0,0,0,.35);
+    box-shadow:0 -4px 24px rgba(0,0,0,.4);
   }
   nav button{
     flex:1; background:none; border:none; color:var(--muted); font-family:var(--thai); font-weight:600;
-    font-size:11px; padding:9px 4px 7px; cursor:pointer; border-radius:10px; transition:.15s;
+    font-size:11px; padding:9px 4px 7px; cursor:pointer; border-radius:10px; transition:.18s;
     display:flex; flex-direction:column; align-items:center; gap:3px;
   }
-  nav button .ic{font-size:19px; line-height:1;}
-  nav button.active{color:var(--accent); background:#0d2530;}
+  nav button .ic{font-size:19px; line-height:1; transition:.18s;}
+  nav button.active{color:var(--accent); background:linear-gradient(180deg, rgba(79,209,255,.14), rgba(79,209,255,.04));}
+  nav button.active .ic{transform:translateY(-1px) scale(1.08);}
 
   main{padding:14px 14px calc(88px + env(safe-area-inset-bottom)); max-width:720px; margin:0 auto;}
   @media(min-width:900px){ main{max-width:1180px;} }
@@ -96,41 +115,50 @@
   @media(min-width:820px){ .g-stats{grid-template-columns:repeat(4,1fr);} .g-2{grid-template-columns:2fr 1fr;} }
 
   .card{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px;
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px;
+    box-shadow:var(--shadow-sm);
   }
-  .stat{padding:16px 18px;}
-  .stat .label{font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase;}
-  .stat .value{font-family:var(--disp); font-size:32px; font-weight:700; margin-top:6px;}
+  .stat{padding:16px 18px 18px; position:relative; overflow:hidden; border-top:2px solid transparent;}
+  .stat::before{content:''; position:absolute; top:0; left:0; right:0; height:2px;}
+  .stat.t-total::before{background:var(--grad-accent);}
+  .stat.t-ok::before{background:var(--grad-ok);}
+  .stat.t-bad::before{background:var(--grad-bad);}
+  .stat.t-warn::before{background:var(--grad-warn);}
+  .stat .label{font-family:var(--mono); font-size:10.5px; color:var(--muted); letter-spacing:1.2px; text-transform:uppercase;}
+  .stat .value{font-family:var(--disp); font-size:30px; font-weight:700; margin-top:6px; letter-spacing:-.5px;}
   .stat .value.ok{color:var(--ok);}
   .stat .value.bad{color:var(--bad);}
-  .stat .sub{font-size:12px; color:var(--muted); margin-top:4px;}
+  .stat .sub{font-size:11.5px; color:var(--muted); margin-top:4px;}
 
-  h2.section-title{font-family:var(--disp); font-size:16px; margin:26px 0 12px; color:var(--text); display:flex; align-items:center; gap:8px;}
-  h2.section-title .n{font-family:var(--mono); color:var(--accent); font-size:12px; border:1px solid var(--line); padding:2px 7px; border-radius:20px;}
+  h2.section-title{font-family:var(--disp); font-size:15.5px; margin:28px 0 12px; color:var(--text); display:flex; align-items:center; gap:8px; letter-spacing:.2px;}
+  h2.section-title .n{font-family:var(--mono); color:var(--accent); font-size:11.5px; border:1px solid var(--line); padding:2px 8px; border-radius:20px; background:var(--panel-2);}
 
   .farm-card{
-    border-left:3px solid var(--line); position:relative; overflow:hidden;
+    border:1px solid var(--line); border-left:3px solid var(--line); position:relative; overflow:hidden;
+    transition:.2s; box-shadow:var(--shadow-sm);
   }
   .farm-card.status-ok{border-left-color:var(--ok);}
-  .farm-card.status-bad{border-left-color:var(--bad);}
+  .farm-card.status-bad{border-left-color:var(--bad); box-shadow:0 0 0 1px rgba(255,107,129,.12), var(--shadow-sm);}
   .farm-card.status-none{border-left-color:var(--muted);}
-  .farm-card .fname{font-weight:600; font-size:14px; margin-bottom:10px;}
+  .farm-card .fname{font-weight:600; font-size:14px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px;}
   .farm-card .frow{display:flex; justify-content:space-between; font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:4px;}
   .farm-card .frow b{color:var(--text); font-size:13px;}
+  .farm-card .photo-link{display:inline-flex; align-items:center; gap:4px; margin-top:10px; font-size:11px; color:var(--accent); font-family:var(--mono); text-decoration:none;}
   .badge{
-    display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px;
-    padding:3px 9px; border-radius:20px; font-weight:600; letter-spacing:.3px;
+    display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10.5px;
+    padding:3px 10px; border-radius:20px; font-weight:600; letter-spacing:.3px; border:1px solid transparent;
   }
-  .badge.ok{background:var(--ok-dim); color:var(--ok);}
-  .badge.bad{background:var(--bad-dim); color:var(--bad);}
-  .badge.warn{background:var(--warn-dim); color:var(--warn);}
-  .badge.none{background:#22282b; color:var(--muted);}
+  .badge.ok{background:var(--ok-dim); color:var(--ok); border-color:rgba(52,224,161,.25);}
+  .badge.bad{background:var(--bad-dim); color:var(--bad); border-color:rgba(255,107,129,.25);}
+  .badge.warn{background:var(--warn-dim); color:var(--warn); border-color:rgba(255,194,71,.25);}
+  .badge.none{background:var(--panel-3); color:var(--muted);}
 
   .pending-item{
     display:flex; justify-content:space-between; align-items:center; gap:12px;
-    padding:12px 14px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; background:var(--panel-2);
+    padding:12px 14px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:var(--panel-2);
+    border-left:3px solid var(--warn);
   }
-  .pending-item.overdue{border-color:var(--bad); background:var(--bad-dim);}
+  .pending-item.overdue{border-left-color:var(--bad); background:var(--bad-dim);}
   .pending-item .pname{font-weight:600; font-size:13px;}
   .pending-item .pmeta{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:3px;}
 
@@ -139,44 +167,45 @@
   label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-family:var(--mono); letter-spacing:.3px;}
   input,select,textarea{
     width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
-    padding:12px 12px; border-radius:7px; font-family:var(--thai); font-size:16px;
+    padding:12px 12px; border-radius:9px; font-family:var(--thai); font-size:16px; transition:.15s;
   }
-  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent);}
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,209,255,.12);}
   textarea{resize:vertical; min-height:70px;}
   select{appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9'><path d='M1 1l6 6 6-6' stroke='%238b9aa3' fill='none' stroke-width='2'/></svg>"); background-repeat:no-repeat; background-position:right 12px center; padding-right:34px;}
 
   .farm-picker{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:18px;}
   @media(min-width:640px){ .farm-picker{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));} }
   .farm-picker .fp{
-    border:1px solid var(--line); background:var(--panel-2); padding:14px 10px; border-radius:8px;
-    cursor:pointer; text-align:center; font-size:12.5px; font-weight:600; transition:.15s; line-height:1.3;
+    border:1px solid var(--line); background:var(--panel-2); padding:14px 10px; border-radius:10px;
+    cursor:pointer; text-align:center; font-size:12.5px; font-weight:600; transition:.18s; line-height:1.3;
   }
-  .farm-picker .fp.selected{border-color:var(--accent); background:#0d2530; color:var(--accent);}
+  .farm-picker .fp.selected{border-color:var(--accent); background:linear-gradient(135deg, rgba(79,209,255,.16), rgba(167,139,250,.10)); color:var(--accent); box-shadow:var(--shadow-glow); transform:translateY(-1px);}
   .inspector-other{display:none; margin-top:10px;}
 
   .calc-box{
-    display:flex; gap:14px; padding:14px; background:var(--panel-2); border-radius:8px; margin:6px 0 18px;
-    font-family:var(--mono); font-size:13px; flex-wrap:wrap;
+    display:flex; gap:14px; padding:14px; background:var(--panel-2); border-radius:10px; margin:6px 0 18px;
+    font-family:var(--mono); font-size:13px; flex-wrap:wrap; border:1px solid var(--line);
   }
   .calc-box div{display:flex; align-items:center; gap:6px;}
   .calc-box .n{font-size:18px; font-weight:700;}
 
   .fix-block{
-    border:1px dashed var(--bad); background:var(--bad-dim); border-radius:8px; padding:16px; margin-bottom:14px;
+    border:1px dashed var(--bad); background:var(--bad-dim); border-radius:10px; padding:16px; margin-bottom:14px;
   }
   .fix-block .ft{font-family:var(--mono); color:var(--bad); font-size:12px; margin-bottom:12px; letter-spacing:.5px;}
 
   button.submit{
-    background:var(--accent); color:#00252e; border:none; font-weight:700; font-family:var(--thai);
-    padding:13px 26px; border-radius:8px; cursor:pointer; font-size:15px; transition:.15s;
+    background:var(--grad-accent); color:#00232c; border:none; font-weight:700; font-family:var(--thai);
+    padding:13px 26px; border-radius:10px; cursor:pointer; font-size:15px; transition:.18s; box-shadow:var(--shadow-glow);
   }
-  button.submit:hover{filter:brightness(1.1);}
-  button.submit:disabled{opacity:.5; cursor:not-allowed;}
+  button.submit:hover{filter:brightness(1.08); transform:translateY(-1px);}
+  button.submit:active{transform:translateY(0);}
+  button.submit:disabled{opacity:.5; cursor:not-allowed; transform:none;}
 
   .toast{
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
-    background:var(--panel); border:1px solid var(--line); padding:13px 22px; border-radius:8px;
-    font-size:14px; opacity:0; transition:.25s; z-index:100; box-shadow:0 8px 24px rgba(0,0,0,.4);
+    background:var(--panel-3); border:1px solid var(--line); padding:13px 22px; border-radius:10px;
+    font-size:14px; opacity:0; transition:.25s; z-index:100; box-shadow:var(--shadow-md);
   }
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
   .toast.ok{border-color:var(--ok); color:var(--ok);}
@@ -187,10 +216,10 @@
   @media(min-width:640px){ .filters{grid-template-columns:1fr 1fr 1fr auto;} .filters .full-row{grid-column:auto;} }
   .btn-secondary{
     background:var(--panel-2); color:var(--text); border:1px solid var(--line); font-weight:600; font-family:var(--thai);
-    padding:12px 18px; border-radius:8px; cursor:pointer; font-size:14px; white-space:nowrap;
+    padding:12px 18px; border-radius:10px; cursor:pointer; font-size:14px; white-space:nowrap; transition:.18s;
   }
-  .btn-secondary:hover{border-color:var(--accent); color:var(--accent);}
-  .btn-secondary.danger:hover{border-color:var(--bad); color:var(--bad);}
+  .btn-secondary:hover{border-color:var(--accent); color:var(--accent); box-shadow:0 0 0 3px rgba(79,209,255,.10);}
+  .btn-secondary.danger:hover{border-color:var(--bad); color:var(--bad); box-shadow:0 0 0 3px rgba(255,107,129,.10);}
   .btn-row{display:flex; gap:8px; flex-wrap:wrap;}
   .btn-row .submit, .btn-row .btn-secondary{flex:1; min-width:110px;}
 
@@ -201,47 +230,67 @@
   tr:hover td{background:var(--panel-2);}
   .empty-state{text-align:center; padding:40px 20px; color:var(--muted); font-size:13px;}
   .empty-state .icon{font-size:32px; margin-bottom:10px;}
+  .thumb-link{display:inline-block; width:34px; height:34px; border-radius:7px; overflow:hidden; border:1px solid var(--line); vertical-align:middle;}
+  .thumb-link img{width:100%; height:100%; object-fit:cover; display:block;}
 
   .chart-wrap{position:relative; height:240px;}
   .loading{color:var(--muted); font-family:var(--mono); font-size:12px; text-align:center; padding:30px;}
 
   /* ---- Segmented control (สรุป ณ ปัจจุบัน / รายช่วงเวลา) ---- */
-  .seg{display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:3px; gap:3px;}
+  .seg{display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:3px; gap:3px;}
   .seg-btn{flex:1; background:none; border:none; color:var(--muted); font-family:var(--thai); font-weight:600;
-    font-size:13px; padding:10px 8px; border-radius:7px; cursor:pointer;}
-  .seg-btn.active{background:var(--accent); color:#00252e;}
+    font-size:13px; padding:10px 8px; border-radius:8px; cursor:pointer; transition:.18s;}
+  .seg-btn.active{background:var(--grad-accent); color:#00232c; box-shadow:var(--shadow-glow);}
 
   /* ---- Executive report content ---- */
-  .report-page{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px 18px;}
-  .report-head{text-align:center; border-bottom:2px solid var(--line); padding-bottom:16px; margin-bottom:20px;}
-  .report-head .org{font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:1px;}
-  .report-head h2{font-family:var(--disp); font-size:19px; margin:8px 0 4px;}
+  .report-page{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:0; overflow:hidden; box-shadow:var(--shadow-md);}
+  .report-head{text-align:center; padding:26px 18px 20px; background:linear-gradient(135deg, rgba(79,209,255,.14), rgba(167,139,250,.08)); border-bottom:2px solid var(--line);}
+  .report-head .org{font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:1.5px; font-weight:600;}
+  .report-head h2{font-family:var(--disp); font-size:19px; margin:10px 0 4px;}
   .report-head .period{font-size:13px; color:var(--muted);}
+  .report-body{padding:20px 18px 4px;}
   .report-section{margin-bottom:24px;}
-  .report-section h3{font-family:var(--disp); font-size:14px; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--line);}
+  .report-section h3{font-family:var(--disp); font-size:14px; margin:0 0 12px; padding:0 0 8px 10px; border-left:3px solid var(--accent); border-bottom:1px solid var(--line); padding-bottom:8px;}
   .kpi-row{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:6px;}
   @media(min-width:640px){ .kpi-row{grid-template-columns:repeat(4,1fr);} }
-  .kpi{background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px; text-align:center;}
+  .kpi{background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:12px; text-align:center; border-top:3px solid var(--line);}
+  .kpi.t-total{border-top-color:var(--accent);}
+  .kpi.t-ok{border-top-color:var(--ok);}
+  .kpi.t-bad{border-top-color:var(--bad);}
+  .kpi.t-warn{border-top-color:var(--warn);}
   .kpi .k-label{font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase;}
   .kpi .k-value{font-family:var(--disp); font-size:22px; font-weight:700; margin-top:4px;}
-  .report-foot{margin-top:20px; padding-top:14px; border-top:1px solid var(--line); font-family:var(--mono); font-size:10.5px; color:var(--muted); text-align:right;}
+  .report-foot{margin:20px 18px 0; padding:14px 0; border-top:1px solid var(--line); font-family:var(--mono); font-size:10.5px; color:var(--muted); text-align:right;}
+  .report-photo{margin-top:10px; border-radius:8px; overflow:hidden; border:1px solid var(--line); max-width:260px;}
+  .report-photo img{width:100%; display:block;}
 
   @media print{
+    *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
     body{background:#fff !important; color:#111 !important;}
     .scanline, nav, header, .no-print, .toast{display:none !important;}
     main{padding:0 !important; max-width:none !important;}
     .view{display:none !important;}
     .view#view-report{display:block !important;}
-    .report-page{background:#fff !important; border:none !important; padding:0 !important; color:#111 !important;}
-    .report-head{border-bottom:2px solid #333 !important;}
-    .report-head .org, .report-head .period{color:#444 !important;}
-    .report-section h3{border-bottom:1px solid #999 !important; color:#111 !important;}
-    .kpi{background:#f4f4f4 !important; border:1px solid #ccc !important;}
-    .kpi .k-label{color:#555 !important;}
+    .report-page{background:#fff !important; border:none !important; box-shadow:none !important; border-radius:0 !important;}
+    .report-head{background:linear-gradient(135deg, #e6f8ff, #f1ecff) !important; border-bottom:2px solid #4fd1ff !important; padding:16px 0 14px !important;}
+    .report-head .org{color:#0891b2 !important;}
+    .report-head h2{color:#111 !important;}
+    .report-head .period{color:#555 !important;}
+    .report-body{padding:14px 0 0 !important;}
+    .report-section h3{border-left-color:#4fd1ff !important; border-bottom:1px solid #ccc !important; color:#111 !important;}
+    .kpi{background:#f6f8fa !important; border:1px solid #ddd !important;}
+    .kpi.t-total{border-top:3px solid #4fd1ff !important;}
+    .kpi.t-ok{border-top:3px solid #10b981 !important;}
+    .kpi.t-bad{border-top:3px solid #f43f5e !important;}
+    .kpi.t-warn{border-top:3px solid #f59e0b !important;}
+    .kpi .k-label{color:#666 !important;}
     .kpi .k-value{color:#111 !important;}
-    th,td{border-bottom:1px solid #ccc !important; color:#111 !important;}
+    th,td{border-bottom:1px solid #ddd !important; color:#111 !important;}
     th{color:#555 !important;}
-    .badge{border:1px solid #999 !important; background:#fff !important; color:#111 !important;}
+    .badge.ok{background:#d1fae5 !important; color:#065f46 !important; border:1px solid #10b981 !important;}
+    .badge.bad{background:#fee2e2 !important; color:#991b1b !important; border:1px solid #f43f5e !important;}
+    .badge.warn{background:#fef3c7 !important; color:#92400e !important; border:1px solid #f59e0b !important;}
+    .badge.none{background:#f1f5f9 !important; color:#475569 !important; border:1px solid #cbd5e1 !important;}
     .report-foot{color:#666 !important;}
     table{page-break-inside:auto;}
     tr{page-break-inside:avoid;}
@@ -253,12 +302,13 @@
 
 <header>
   <div class="brand">
-    <span class="dot"></span>
+    <span class="icon-badge">📹</span>
     <div style="min-width:0;">
-      <h1>CCTV MONITOR</h1>
+      <h1>CCTV MONITOR <span class="dot"></span></h1>
       <small>MSBRC2 · กล้องวงจรปิด</small>
     </div>
   </div>
+
   <div class="clock" id="clock"></div>
 </header>
 
@@ -338,6 +388,18 @@
         </div>
       </div>
 
+      <div class="row full">
+        <div>
+          <label>แนบรูปภาพหน้าจอตรวจสอบ (ถ้ามี)</label>
+          <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
+          <button type="button" class="btn-secondary" id="photoPickBtn" style="width:100%;">📷 ถ่ายรูป / เลือกรูปจากเครื่อง</button>
+          <div id="photoPreviewWrap" style="display:none; margin-top:12px; align-items:center; gap:12px;">
+            <img id="photoPreview" style="width:88px; height:88px; object-fit:cover; border-radius:10px; border:1px solid var(--line); vertical-align:middle;">
+            <button type="button" class="btn-secondary danger" id="photoRemoveBtn" style="margin-top:8px;">🗑️ ลบรูปนี้</button>
+          </div>
+        </div>
+      </div>
+
       <button type="submit" class="submit" id="submitBtn">บันทึกผลตรวจสอบ</button>
     </form>
   </section>
@@ -386,7 +448,7 @@
       <div class="table-scroll">
       <table id="historyTable">
         <thead>
-          <tr><th>วันที่ตรวจ</th><th>ศูนย์วิจัย</th><th>ทั้งหมด</th><th>ใช้งานได้</th><th>ใช้งานไม่ได้</th><th>สถานะ</th><th>ผู้ตรวจสอบ</th></tr>
+          <tr><th>วันที่ตรวจ</th><th>ศูนย์วิจัย</th><th>ทั้งหมด</th><th>ใช้งานได้</th><th>ใช้งานไม่ได้</th><th>สถานะ</th><th>ผู้ตรวจสอบ</th><th>รูปถ่าย</th></tr>
         </thead>
         <tbody id="historyBody"></tbody>
       </table>
@@ -457,6 +519,21 @@ function api(action, params = {}) {
     });
 }
 
+// ใช้ตอนส่งข้อมูลที่อาจมีขนาดใหญ่เกิน GET URL limit (เช่น มีรูปภาพแนบเป็น base64)
+// Content-Type: text/plain ทำให้ยังเป็น "simple request" ไม่ trigger CORS preflight
+function apiPost(action, payload) {
+  return fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, payload })
+  })
+    .then(r => r.json())
+    .then(res => {
+      if (!res.success) throw new Error(res.error || 'เกิดข้อผิดพลาด');
+      return res.data;
+    });
+}
+
 function todayStr() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -467,6 +544,17 @@ function showToast(msg, type = 'ok') {
   t.textContent = msg;
   t.className = 'toast show ' + type;
   setTimeout(() => t.className = 'toast ' + type, 2600);
+}
+
+function photoThumbUrl(fileId, size) {
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size || 400}`;
+}
+function photoViewUrl(fileId) {
+  return `https://drive.google.com/file/d/${fileId}/view`;
+}
+function photoThumbHtml(fileId) {
+  if (!fileId) return '<span style="color:var(--muted);">-</span>';
+  return `<a class="thumb-link" href="${photoViewUrl(fileId)}" target="_blank" rel="noopener"><img src="${photoThumbUrl(fileId, 100)}" loading="lazy" alt="รูปถ่าย"></a>`;
 }
 
 function fmtDate(s) {
@@ -596,6 +684,55 @@ function updateCalc() {
 document.getElementById('totalCameras').addEventListener('input', updateCalc);
 document.getElementById('workingCameras').addEventListener('input', updateCalc);
 
+// ---------- แนบรูปภาพหน้าจอตรวจสอบ (resize ก่อนส่ง เพื่อลดขนาดไฟล์) ----------
+let capturedPhoto = null; // { base64, mime }
+
+document.getElementById('photoPickBtn').addEventListener('click', () => {
+  document.getElementById('photoInput').click();
+});
+
+document.getElementById('photoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  resizeImageFile(file, 1280, 0.72).then(({ base64, mime, dataUrl }) => {
+    capturedPhoto = { base64, mime };
+    document.getElementById('photoPreview').src = dataUrl;
+    document.getElementById('photoPreviewWrap').style.display = 'flex';
+  }).catch(() => showToast('ไม่สามารถอ่านไฟล์รูปภาพนี้ได้', 'err'));
+});
+
+document.getElementById('photoRemoveBtn').addEventListener('click', () => {
+  capturedPhoto = null;
+  document.getElementById('photoInput').value = '';
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+});
+
+// ย่อขนาดรูปด้วย canvas แล้วคืน base64 (JPEG) — ลดขนาดไฟล์ก่อนอัปโหลดขึ้น Drive
+function resizeImageFile(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve({ base64: dataUrl.split(',')[1], mime: 'image/jpeg', dataUrl });
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 document.getElementById('inspectForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!selectedFarm) { showToast('กรุณาเลือกศูนย์วิจัยก่อน', 'err'); return; }
@@ -626,16 +763,23 @@ document.getElementById('inspectForm').addEventListener('submit', async (e) => {
     inspector: inspectorName,
     note: document.getElementById('note').value
   };
+  if (capturedPhoto) {
+    payload.photo_base64 = capturedPhoto.base64;
+    payload.photo_mime = capturedPhoto.mime;
+  }
 
   const btn = document.getElementById('submitBtn');
-  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  btn.disabled = true; btn.textContent = capturedPhoto ? 'กำลังอัปโหลดรูป+บันทึก...' : 'กำลังบันทึก...';
   try {
-    await api('submitRecord', { payload });
+    // ใช้ POST เสมอ (Content-Type: text/plain ไม่ trigger CORS preflight) เพื่อรองรับ payload ขนาดใหญ่เวลามีรูปแนบ
+    await apiPost('submitRecord', payload);
     showToast('บันทึกผลตรวจสอบเรียบร้อย', 'ok');
     document.getElementById('inspectForm').reset();
     document.getElementById('inspectDate').value = todayStr();
     document.querySelectorAll('.fp').forEach(x => x.classList.remove('selected'));
     selectedFarm = null;
+    capturedPhoto = null;
+    document.getElementById('photoPreviewWrap').style.display = 'none';
     document.getElementById('inspectorOtherWrap').style.display = 'none';
     updateCalc();
   } catch (err) {
@@ -664,10 +808,10 @@ function renderStats(summary) {
   const t = summary.totals;
   const uptime = t.total_cameras ? Math.round((t.working_cameras / t.total_cameras) * 100) : 0;
   document.getElementById('statCards').innerHTML = `
-    <div class="card stat"><div class="label">กล้องทั้งหมด</div><div class="value">${t.total_cameras}</div><div class="sub">5 ศูนย์วิจัย</div></div>
-    <div class="card stat"><div class="label">ใช้งานได้</div><div class="value ok">${t.working_cameras}</div><div class="sub">ตัว</div></div>
-    <div class="card stat"><div class="label">ใช้งานไม่ได้</div><div class="value ${t.broken_cameras>0?'bad':''}">${t.broken_cameras}</div><div class="sub">ตัว</div></div>
-    <div class="card stat"><div class="label">อัตราใช้งานได้</div><div class="value ${uptime<100?'bad':'ok'}">${uptime}%</div><div class="sub">Uptime</div></div>
+    <div class="card stat t-total"><div class="label">กล้องทั้งหมด</div><div class="value">${t.total_cameras}</div><div class="sub">5 ศูนย์วิจัย</div></div>
+    <div class="card stat t-ok"><div class="label">ใช้งานได้</div><div class="value ok">${t.working_cameras}</div><div class="sub">ตัว</div></div>
+    <div class="card stat ${t.broken_cameras>0?'t-bad':'t-ok'}"><div class="label">ใช้งานไม่ได้</div><div class="value ${t.broken_cameras>0?'bad':''}">${t.broken_cameras}</div><div class="sub">ตัว</div></div>
+    <div class="card stat ${uptime<100?'t-warn':'t-ok'}"><div class="label">อัตราใช้งานได้</div><div class="value ${uptime<100?'bad':'ok'}">${uptime}%</div><div class="sub">Uptime</div></div>
   `;
 }
 
@@ -686,6 +830,7 @@ function renderFarmGrid(farms) {
         <div class="frow"><span>ใช้งานได้</span><b>${f.working_cameras}</b></div>
         <div class="frow"><span>เสีย</span><b>${f.broken_cameras}</b></div>
         <div class="frow"><span>ตรวจล่าสุด</span><b>${fmtDate(f.inspect_date)}</b></div>
+        ${f.photo_file_id ? `<a class="photo-link" href="${photoViewUrl(f.photo_file_id)}" target="_blank" rel="noopener">📷 ดูรูปหน้าจอตรวจสอบ</a>` : ''}
       </div>`;
   }).join('');
 }
@@ -746,7 +891,7 @@ async function loadHistory() {
   const date_from = document.getElementById('filterFrom').value;
   const date_to = document.getElementById('filterTo').value;
   const tbody = document.getElementById('historyBody');
-  tbody.innerHTML = '<tr><td colspan="7" class="loading">กำลังโหลดข้อมูล...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="loading">กำลังโหลดข้อมูล...</td></tr>';
   try {
     const records = await api('getRecords', { farm_code, date_from, date_to });
     lastHistoryRecords = records;
@@ -760,10 +905,11 @@ async function loadHistory() {
         <td>${r.broken_cameras}</td>
         <td>${Number(r.broken_cameras)>0 ? '<span class="badge bad">รอแก้ไข</span>' : '<span class="badge ok">ปกติ</span>'}</td>
         <td>${r.inspector || '-'}</td>
+        <td>${photoThumbHtml(r.photo_file_id)}</td>
       </tr>
     `).join('');
   } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="7" class="loading">โหลดข้อมูลไม่สำเร็จ: ' + e.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="loading">โหลดข้อมูลไม่สำเร็จ: ' + e.message + '</td></tr>';
   }
 }
 document.getElementById('filterBtn').addEventListener('click', loadHistory);
@@ -783,7 +929,8 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     'กำหนดวันแก้ไข': r.fix_date || '-',
     'สถานะ': Number(r.broken_cameras) > 0 ? 'รอแก้ไข' : 'ปกติ',
     'ผู้ตรวจสอบ': r.inspector || '-',
-    'หมายเหตุ': r.note || '-'
+    'หมายเหตุ': r.note || '-',
+    'ลิงก์รูปถ่าย': r.photo_file_id ? photoViewUrl(r.photo_file_id) : '-'
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -855,6 +1002,7 @@ function renderCurrentReport(summary, pending) {
       <td>${f.broken_cameras}</td>
       <td>${!f.last_inspected ? '<span class="badge none">ยังไม่ตรวจสอบ</span>' : (Number(f.broken_cameras)>0 ? '<span class="badge bad">รอแก้ไข</span>' : '<span class="badge ok">ปกติ</span>')}</td>
       <td>${fmtDate(f.inspect_date)}</td>
+      <td>${photoThumbHtml(f.photo_file_id)}</td>
     </tr>`).join('');
 
   const pendingRows = pending.length ? pending.map(p => `
@@ -872,14 +1020,15 @@ function renderCurrentReport(summary, pending) {
         <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
         <div class="period">ข้อมูล ณ ปัจจุบัน · สร้างรายงานเมื่อ ${nowStamp()}</div>
       </div>
+      <div class="report-body">
 
       <div class="report-section">
         <h3>ภาพรวมทั้งหมด</h3>
         <div class="kpi-row">
-          <div class="kpi"><div class="k-label">กล้องทั้งหมด</div><div class="k-value">${t.total_cameras}</div></div>
-          <div class="kpi"><div class="k-label">ใช้งานได้</div><div class="k-value">${t.working_cameras}</div></div>
-          <div class="kpi"><div class="k-label">ใช้งานไม่ได้</div><div class="k-value">${t.broken_cameras}</div></div>
-          <div class="kpi"><div class="k-label">อัตราใช้งานได้</div><div class="k-value">${uptime}%</div></div>
+          <div class="kpi t-total"><div class="k-label">กล้องทั้งหมด</div><div class="k-value">${t.total_cameras}</div></div>
+          <div class="kpi t-ok"><div class="k-label">ใช้งานได้</div><div class="k-value">${t.working_cameras}</div></div>
+          <div class="kpi ${t.broken_cameras>0?'t-bad':'t-ok'}"><div class="k-label">ใช้งานไม่ได้</div><div class="k-value">${t.broken_cameras}</div></div>
+          <div class="kpi ${uptime<100?'t-warn':'t-ok'}"><div class="k-label">อัตราใช้งานได้</div><div class="k-value">${uptime}%</div></div>
         </div>
       </div>
 
@@ -887,7 +1036,7 @@ function renderCurrentReport(summary, pending) {
         <h3>สถานะรายศูนย์วิจัย</h3>
         <div class="table-scroll">
         <table>
-          <thead><tr><th>ศูนย์วิจัย</th><th>ทั้งหมด</th><th>ใช้งานได้</th><th>เสีย</th><th>สถานะ</th><th>ตรวจล่าสุด</th></tr></thead>
+          <thead><tr><th>ศูนย์วิจัย</th><th>ทั้งหมด</th><th>ใช้งานได้</th><th>เสีย</th><th>สถานะ</th><th>ตรวจล่าสุด</th><th>รูปถ่าย</th></tr></thead>
           <tbody>${farmRows}</tbody>
         </table>
         </div>
@@ -903,6 +1052,7 @@ function renderCurrentReport(summary, pending) {
         </div>
       </div>
 
+      </div>
       <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2</div>
     </div>`;
 }
@@ -936,14 +1086,15 @@ function renderPeriodReport(p) {
         <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
         <div class="period">ช่วงเวลา ${fmtDate(p.date_from)} — ${fmtDate(p.date_to)} · สร้างรายงานเมื่อ ${nowStamp()}</div>
       </div>
+      <div class="report-body">
 
       <div class="report-section">
         <h3>สรุปช่วงเวลา</h3>
         <div class="kpi-row">
-          <div class="kpi"><div class="k-label">ตรวจสอบทั้งหมด</div><div class="k-value">${p.total_inspections}</div></div>
-          <div class="kpi"><div class="k-label">พบอุบัติการณ์</div><div class="k-value">${p.total_incidents}</div></div>
-          <div class="kpi"><div class="k-label">แก้ไขแล้ว</div><div class="k-value">${p.resolved_count}</div></div>
-          <div class="kpi"><div class="k-label">เลยกำหนด/ยังไม่แก้</div><div class="k-value">${p.overdue_count + p.pending_count}</div></div>
+          <div class="kpi t-total"><div class="k-label">ตรวจสอบทั้งหมด</div><div class="k-value">${p.total_inspections}</div></div>
+          <div class="kpi ${p.total_incidents>0?'t-warn':'t-ok'}"><div class="k-label">พบอุบัติการณ์</div><div class="k-value">${p.total_incidents}</div></div>
+          <div class="kpi t-ok"><div class="k-label">แก้ไขแล้ว</div><div class="k-value">${p.resolved_count}</div></div>
+          <div class="kpi ${(p.overdue_count + p.pending_count)>0?'t-bad':'t-ok'}"><div class="k-label">เลยกำหนด/ยังไม่แก้</div><div class="k-value">${p.overdue_count + p.pending_count}</div></div>
         </div>
       </div>
 
@@ -967,6 +1118,7 @@ function renderPeriodReport(p) {
         </div>
       </div>
 
+      </div>
       <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2</div>
     </div>`;
 }
