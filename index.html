@@ -1036,6 +1036,26 @@ document.getElementById('reportApplyMonthBtn').addEventListener('click', () => {
 });
 
 // สร้างข้อความช่วงเวลาแบบอ่านง่าย — ถ้าช่วงที่เลือกตรงกับทั้งเดือนพอดี (หรือทั้งเดือนถึงวันนี้) จะขึ้นชื่อเดือน/ปีแทนวันที่ดิบ
+function monthYearThai(date) {
+  return THAI_MONTHS[date.getMonth()] + ' ' + (date.getFullYear() + 543);
+}
+
+// ข้อความสั้นๆ ใส่ต่อท้ายชื่อรายงานโดยตรง ให้เห็นเดือน/ปีชัดเจนตั้งแต่หัวเรื่อง
+function periodTitleShort(fromStr, toStr) {
+  const from = new Date(fromStr + 'T00:00:00');
+  const to = new Date(toStr + 'T00:00:00');
+  const today = new Date();
+  const lastDayOfFromMonth = new Date(from.getFullYear(), from.getMonth() + 1, 0);
+  const isFirstOfMonth = from.getDate() === 1;
+  const sameMonthAsTo = from.getFullYear() === to.getFullYear() && from.getMonth() === to.getMonth();
+  const toIsLastDay = to.getDate() === lastDayOfFromMonth.getDate() && sameMonthAsTo;
+  const toIsTodayInProgress = sameMonthAsTo && to.toDateString() === today.toDateString() && !toIsLastDay;
+
+  if (isFirstOfMonth && toIsLastDay) return `ประจำเดือน${monthYearThai(from)}`;
+  if (isFirstOfMonth && toIsTodayInProgress) return `ประจำเดือน${monthYearThai(from)} (ถึงวันที่ ${fmtDate(toStr)})`;
+  return `ช่วงวันที่ ${fmtDate(fromStr)} – ${fmtDate(toStr)}`;
+}
+
 function periodLabel(fromStr, toStr) {
   const from = new Date(fromStr + 'T00:00:00');
   const to = new Date(toStr + 'T00:00:00');
@@ -1116,7 +1136,7 @@ function renderCurrentReport(summary, pending) {
       <div class="report-head">
         <img class="report-logo" src="./cpf-logo.png" alt="CPF">
         <div class="org">บริษัทเจริญโภคภัณฑ์อาหาร จำกัด (มหาชน) ธุรกิจพันธุ์กุ้งทะเล 2</div>
-        <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
+        <h2>รายงานสรุปสถานะกล้องวงจรปิด ประจำเดือน${monthYearThai(new Date())}</h2>
         <div class="period">ข้อมูล ณ วันที่ ${fmtDateFull(todayStr())} · สร้างรายงานเมื่อ ${nowStamp()}</div>
       </div>
       <div class="report-body">
@@ -1183,8 +1203,8 @@ function renderPeriodReport(p) {
       <div class="report-head">
         <img class="report-logo" src="./cpf-logo.png" alt="CPF">
         <div class="org">บริษัทเจริญโภคภัณฑ์อาหาร จำกัด (มหาชน) ธุรกิจพันธุ์กุ้งทะเล 2</div>
-        <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
-        <div class="period">${periodLabel(p.date_from, p.date_to)} · สร้างรายงานเมื่อ ${nowStamp()}</div>
+        <h2>รายงานสรุปสถานะกล้องวงจรปิด ${periodTitleShort(p.date_from, p.date_to)}</h2>
+        <div class="period">ข้อมูลช่วงวันที่ ${fmtDate(p.date_from)} – ${fmtDate(p.date_to)} · สร้างรายงานเมื่อ ${nowStamp()}</div>
       </div>
       <div class="report-body">
 
