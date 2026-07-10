@@ -1010,7 +1010,7 @@ function renderCurrentReport(summary, pending) {
       <td>${f.broken_cameras}</td>
       <td>${!f.last_inspected ? '<span class="badge none">ยังไม่ตรวจสอบ</span>' : (Number(f.broken_cameras)>0 ? '<span class="badge bad">รอแก้ไข</span>' : '<span class="badge ok">ปกติ</span>')}</td>
       <td>${fmtDate(f.inspect_date)}</td>
-      <td>${photoThumbHtml(f.photo_file_id)}</td>
+      <td>${f.inspector || '-'}</td>
     </tr>`).join('');
 
   const pendingRows = pending.length ? pending.map(p => `
@@ -1045,7 +1045,7 @@ function renderCurrentReport(summary, pending) {
         <h3>สถานะรายศูนย์วิจัย</h3>
         <div class="table-scroll">
         <table>
-          <thead><tr><th>ศูนย์วิจัย</th><th>ทั้งหมด</th><th>ใช้งานได้</th><th>เสีย</th><th>สถานะ</th><th>ตรวจล่าสุด</th><th>รูปถ่าย</th></tr></thead>
+          <thead><tr><th>ศูนย์วิจัย</th><th>ทั้งหมด</th><th>ใช้งานได้</th><th>เสีย</th><th>สถานะ</th><th>ตรวจล่าสุด</th><th>ผู้ตรวจสอบ</th></tr></thead>
           <tbody>${farmRows}</tbody>
         </table>
         </div>
