@@ -176,11 +176,72 @@
   .farm-picker{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:18px;}
   @media(min-width:640px){ .farm-picker{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));} }
   .farm-picker .fp{
-    border:1px solid var(--line); background:var(--panel-2); padding:14px 10px; border-radius:10px;
-    cursor:pointer; text-align:center; font-size:12.5px; font-weight:600; transition:.18s; line-height:1.3;
+    border:1px solid var(--line); background:var(--panel-2); padding:12px 10px; border-radius:12px;
+    cursor:pointer; text-align:center; font-size:12.5px; font-weight:600; transition:.18s; line-height:1.35;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
   }
+  .farm-picker .fp .fp-meta{font-family:var(--mono); font-size:10px; color:var(--muted); font-weight:500;}
+  .farm-picker .fp .fp-done{font-size:9.5px; font-family:var(--mono); padding:2px 8px; border-radius:12px; background:var(--ok-dim); color:var(--ok); border:1px solid rgba(52,224,161,.25);}
+  .farm-picker .fp .fp-wait{font-size:9.5px; font-family:var(--mono); padding:2px 8px; border-radius:12px; background:var(--panel-3); color:var(--muted);}
   .farm-picker .fp.selected{border-color:var(--accent); background:linear-gradient(135deg, rgba(79,209,255,.16), rgba(167,139,250,.10)); color:var(--accent); box-shadow:var(--shadow-glow); transform:translateY(-1px);}
   .inspector-other{display:none; margin-top:10px;}
+
+  /* ---- Inspector chips ---- */
+  .chip-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:4px;}
+  .chip{
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text); border-radius:24px;
+    padding:10px 18px; font-family:var(--thai); font-size:13.5px; font-weight:600; cursor:pointer; transition:.18s;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .chip.selected{border-color:var(--accent); background:linear-gradient(135deg, rgba(79,209,255,.16), rgba(167,139,250,.10)); color:var(--accent); box-shadow:var(--shadow-glow);}
+
+  /* ---- Quick OK button ---- */
+  .quick-ok{
+    width:100%; display:flex; align-items:center; gap:14px; text-align:left;
+    background:linear-gradient(135deg, rgba(52,224,161,.14), rgba(34,184,163,.06));
+    border:1px solid rgba(52,224,161,.35); border-radius:14px; padding:16px; cursor:pointer;
+    font-family:var(--thai); color:var(--text); transition:.18s; margin-bottom:14px;
+  }
+  .quick-ok:hover{border-color:var(--ok); box-shadow:0 0 0 3px rgba(52,224,161,.12); transform:translateY(-1px);}
+  .quick-ok:disabled{opacity:.45; cursor:not-allowed; transform:none;}
+  .quick-ok .qicon{
+    width:42px; height:42px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+    background:var(--grad-ok); color:#00291c; font-size:22px; font-weight:800;
+  }
+  .quick-ok b{display:block; font-size:15px;}
+  .quick-ok small{display:block; color:var(--muted); font-size:11.5px; margin-top:2px;}
+
+  /* ---- Counter stepper ---- */
+  .counter-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  @media(max-width:400px){ .counter-grid{grid-template-columns:1fr;} }
+  .counter-card{background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:12px;}
+  .counter-card label{margin-bottom:8px;}
+  .counter{display:flex; align-items:stretch; gap:8px;}
+  .counter input{text-align:center; font-family:var(--disp); font-size:22px; font-weight:700; padding:8px 4px; -moz-appearance:textfield;}
+  .counter input::-webkit-outer-spin-button, .counter input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+  .cbtn{
+    flex:none; width:46px; border:1px solid var(--line); background:var(--panel-3); color:var(--text);
+    border-radius:9px; font-size:22px; font-weight:700; cursor:pointer; transition:.15s; font-family:var(--disp);
+  }
+  .cbtn:active{background:var(--accent); color:#00232c;}
+
+  /* ---- Extra details (collapsible) ---- */
+  .extra-details{margin-bottom:14px; border:1px dashed var(--line); border-radius:12px; padding:0 14px;}
+  .extra-details summary{
+    cursor:pointer; padding:13px 0; font-size:13px; font-weight:600; color:var(--muted); list-style:none; transition:.15s;
+  }
+  .extra-details summary::-webkit-details-marker{display:none;}
+  .extra-details[open] summary{color:var(--accent); border-bottom:1px dashed var(--line); margin-bottom:4px;}
+  .extra-details > .row:last-of-type{margin-bottom:14px;}
+
+  /* ---- Submit summary ---- */
+  .submit-summary{
+    background:var(--panel-2); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:13px; color:var(--muted); line-height:1.6;
+  }
+  .submit-summary b{color:var(--text);}
+  .submit-summary.ready{border-left-color:var(--ok);}
+  .submit-summary.warn{border-left-color:var(--bad);}
 
   .calc-box{
     display:flex; gap:14px; padding:14px; background:var(--panel-2); border-radius:10px; margin:6px 0 18px;
@@ -329,34 +390,43 @@
 
   <!-- ================= FORM VIEW ================= -->
   <section class="view active" id="view-form">
-    <h2 class="section-title">เลือกศูนย์วิจัย</h2>
+    <h2 class="section-title">1. เลือกศูนย์วิจัย <span class="n" id="formFarmProgress">0/5 วันนี้</span></h2>
     <div class="farm-picker" id="farmPicker"></div>
 
     <form id="inspectForm">
-      <div class="row">
-        <div>
-          <label>วัน/เดือน/ปี ที่ตรวจสอบ</label>
-          <input type="date" id="inspectDate" required>
-        </div>
-        <div>
-          <label>ผู้ตรวจสอบ</label>
-          <select id="inspector" required>
-            <option value="">— เลือกผู้ตรวจสอบ —</option>
-          </select>
-          <div class="inspector-other" id="inspectorOtherWrap">
-            <input type="text" id="inspectorOther" placeholder="ระบุชื่อ-นามสกุล">
+      <h2 class="section-title">2. ผู้ตรวจสอบ</h2>
+      <div class="chip-row" id="inspectorChips"></div>
+      <div class="inspector-other" id="inspectorOtherWrap">
+        <input type="text" id="inspectorOther" placeholder="ระบุชื่อ-นามสกุล">
+      </div>
+      <!-- select เดิมซ่อนไว้เพื่อให้ logic getInspectorValue เดิมยังทำงาน -->
+      <select id="inspector" style="display:none;"><option value=""></option></select>
+
+      <h2 class="section-title">3. ผลการตรวจสอบ</h2>
+      <button type="button" class="quick-ok" id="allOkBtn">
+        <span class="qicon">✓</span>
+        <span>
+          <b>กล้องใช้งานได้ครบทุกตัว</b>
+          <small id="allOkHint">เลือกศูนย์วิจัยก่อน</small>
+        </span>
+      </button>
+
+      <div class="counter-grid">
+        <div class="counter-card">
+          <label>กล้องทั้งหมด (ตัว)</label>
+          <div class="counter">
+            <button type="button" class="cbtn" data-target="totalCameras" data-step="-1">−</button>
+            <input type="number" id="totalCameras" min="0" required inputmode="numeric">
+            <button type="button" class="cbtn" data-target="totalCameras" data-step="1">+</button>
           </div>
         </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>จำนวนกล้องวงจรปิดทั้งหมดภายในศูนย์วิจัย (ตัว)</label>
-          <input type="number" id="totalCameras" min="0" required>
-        </div>
-        <div>
-          <label>จำนวนกล้องวงจรปิดที่สามารถใช้งานได้ (ตัว)</label>
-          <input type="number" id="workingCameras" min="0" required>
+        <div class="counter-card">
+          <label>ใช้งานได้ (ตัว)</label>
+          <div class="counter">
+            <button type="button" class="cbtn" data-target="workingCameras" data-step="-1">−</button>
+            <input type="number" id="workingCameras" min="0" required inputmode="numeric">
+            <button type="button" class="cbtn" data-target="workingCameras" data-step="1">+</button>
+          </div>
         </div>
       </div>
 
@@ -387,26 +457,35 @@
         </div>
       </div>
 
-      <div class="row full">
-        <div>
-          <label>หมายเหตุ</label>
-          <textarea id="note" placeholder="(ถ้ามี)"></textarea>
-        </div>
-      </div>
-
-      <div class="row full">
-        <div>
-          <label>แนบรูปภาพหน้าจอตรวจสอบ (ถ้ามี)</label>
-          <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
-          <button type="button" class="btn-secondary" id="photoPickBtn" style="width:100%;">📷 ถ่ายรูป / เลือกรูปจากเครื่อง</button>
-          <div id="photoPreviewWrap" style="display:none; margin-top:12px; align-items:center; gap:12px;">
-            <img id="photoPreview" style="width:88px; height:88px; object-fit:cover; border-radius:10px; border:1px solid var(--line); vertical-align:middle;">
-            <button type="button" class="btn-secondary danger" id="photoRemoveBtn" style="margin-top:8px;">🗑️ ลบรูปนี้</button>
+      <details class="extra-details" id="extraDetails">
+        <summary>➕ เพิ่มเติม: วันที่ย้อนหลัง / หมายเหตุ / แนบรูป</summary>
+        <div class="row" style="margin-top:14px;">
+          <div>
+            <label>วัน/เดือน/ปี ที่ตรวจสอบ</label>
+            <input type="date" id="inspectDate" required>
           </div>
         </div>
-      </div>
+        <div class="row full">
+          <div>
+            <label>หมายเหตุ</label>
+            <textarea id="note" placeholder="(ถ้ามี)"></textarea>
+          </div>
+        </div>
+        <div class="row full">
+          <div>
+            <label>แนบรูปภาพหน้าจอตรวจสอบ (ถ้ามี)</label>
+            <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
+            <button type="button" class="btn-secondary" id="photoPickBtn" style="width:100%;">📷 ถ่ายรูป / เลือกรูปจากเครื่อง</button>
+            <div id="photoPreviewWrap" style="display:none; margin-top:12px; align-items:center; gap:12px;">
+              <img id="photoPreview" style="width:88px; height:88px; object-fit:cover; border-radius:10px; border:1px solid var(--line); vertical-align:middle;">
+              <button type="button" class="btn-secondary danger" id="photoRemoveBtn" style="margin-top:8px;">🗑️ ลบรูปนี้</button>
+            </div>
+          </div>
+        </div>
+      </details>
 
-      <button type="submit" class="submit" id="submitBtn">บันทึกผลตรวจสอบ</button>
+      <div class="submit-summary" id="submitSummary">เลือกศูนย์วิจัยเพื่อเริ่มตรวจสอบ</div>
+      <button type="submit" class="submit" id="submitBtn" style="width:100%;">บันทึกผลตรวจสอบ</button>
     </form>
   </section>
 
@@ -614,6 +693,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ---------- Init ----------
+let todayInspectedCodes = new Set(); // ศูนย์ที่ตรวจแล้ววันนี้
+
 async function init() {
   document.getElementById('inspectDate').value = todayStr();
   try {
@@ -633,28 +714,55 @@ async function init() {
   renderFarmPicker();
   renderFilterFarms();
   renderInspectorSelect();
+  renderInspectorChips();
+  refreshTodayStatus();
+  updateSubmitSummary();
+}
+
+// เช็คว่าศูนย์ไหนตรวจแล้ววันนี้ เพื่อขึ้นป้าย ✓ บนการ์ด (ไม่ block การใช้งานถ้าโหลดไม่สำเร็จ)
+async function refreshTodayStatus() {
+  try {
+    const records = await api('getRecords', { date_from: todayStr(), date_to: todayStr() });
+    todayInspectedCodes = new Set(records.map(r => r.farm_code));
+  } catch (e) {
+    todayInspectedCodes = new Set();
+  }
+  renderFarmPicker();
 }
 
 function renderFarmPicker() {
   const wrap = document.getElementById('farmPicker');
   wrap.innerHTML = '';
+  let doneCount = 0;
   FARMS.forEach(f => {
+    const done = todayInspectedCodes.has(f.code);
+    if (done) doneCount++;
     const el = document.createElement('div');
-    el.className = 'fp';
-    el.textContent = f.name;
+    el.className = 'fp' + (selectedFarm && selectedFarm.code === f.code ? ' selected' : '');
     el.dataset.code = f.code;
+    el.innerHTML = `
+      <span>${f.name}</span>
+      <span class="fp-meta">📹 ${f.total_cameras ?? '-'} ตัว</span>
+      ${done ? '<span class="fp-done">✓ ตรวจวันนี้แล้ว</span>' : '<span class="fp-wait">ยังไม่ตรวจวันนี้</span>'}
+    `;
     el.addEventListener('click', () => {
       selectedFarm = f;
       document.querySelectorAll('.fp').forEach(x => x.classList.remove('selected'));
       el.classList.add('selected');
-      // ใส่จำนวนกล้องทั้งหมดให้อัตโนมัติจากค่าตั้งต้นของศูนย์นี้ (แก้ไขได้ถ้าจำนวนจริงเปลี่ยนไป)
+      // autofill: กล้องทั้งหมดจากค่าตั้งต้นของศูนย์ และตั้ง "ใช้งานได้" = ทั้งหมด (กรณีปกติที่เจอบ่อยสุด)
       if (f.total_cameras !== undefined && f.total_cameras !== null) {
         document.getElementById('totalCameras').value = f.total_cameras;
+        document.getElementById('workingCameras').value = f.total_cameras;
         updateCalc();
       }
+      const hint = document.getElementById('allOkHint');
+      hint.textContent = `บันทึก ${f.name} · กล้อง ${f.total_cameras ?? '?'} ตัว ใช้งานได้ครบ ในคลิกเดียว`;
+      updateSubmitSummary();
     });
     wrap.appendChild(el);
   });
+  const progress = document.getElementById('formFarmProgress');
+  if (progress) progress.textContent = `${doneCount}/${FARMS.length} วันนี้`;
 }
 
 function renderFilterFarms() {
@@ -676,11 +784,40 @@ function renderInspectorSelect() {
   const otherOpt = document.createElement('option');
   otherOpt.value = '__other__'; otherOpt.textContent = 'อื่นๆ (ระบุ)';
   sel.appendChild(otherOpt);
+}
 
-  sel.addEventListener('change', () => {
-    const wrap = document.getElementById('inspectorOtherWrap');
-    wrap.style.display = sel.value === '__other__' ? 'block' : 'none';
+// ---------- Inspector chips (2 คนหลัก + อื่นๆ) ----------
+const LAST_INSPECTOR_KEY = 'cctv_last_inspector';
+
+function renderInspectorChips() {
+  const wrap = document.getElementById('inspectorChips');
+  wrap.innerHTML = '';
+  const names = [...INSPECTORS, '__other__'];
+  names.forEach(name => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.dataset.value = name;
+    chip.textContent = name === '__other__' ? '✏️ อื่นๆ (ระบุ)' : '👤 ' + name;
+    chip.addEventListener('click', () => selectInspectorChip(name));
+    wrap.appendChild(chip);
   });
+  // จำผู้ตรวจคนล่าสุดไว้ เลือกให้อัตโนมัติ
+  let last = null;
+  try { last = localStorage.getItem(LAST_INSPECTOR_KEY); } catch (e) {}
+  if (last && INSPECTORS.includes(last)) selectInspectorChip(last);
+}
+
+function selectInspectorChip(name) {
+  document.querySelectorAll('#inspectorChips .chip').forEach(c => {
+    c.classList.toggle('selected', c.dataset.value === name);
+  });
+  document.getElementById('inspector').value = name;
+  document.getElementById('inspectorOtherWrap').style.display = name === '__other__' ? 'block' : 'none';
+  if (name !== '__other__') {
+    try { localStorage.setItem(LAST_INSPECTOR_KEY, name); } catch (e) {}
+  }
+  updateSubmitSummary();
 }
 
 function getInspectorValue() {
@@ -707,9 +844,68 @@ function updateCalc() {
     statusEl.className = 'badge ok'; statusEl.textContent = 'ปกติ';
     fixBlock.style.display = 'none';
   }
+  updateSubmitSummary();
 }
 document.getElementById('totalCameras').addEventListener('input', updateCalc);
 document.getElementById('workingCameras').addEventListener('input', updateCalc);
+document.getElementById('inspectorOther').addEventListener('input', updateSubmitSummary);
+
+// ---------- ปุ่ม +/- (stepper) ----------
+document.querySelectorAll('.cbtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    const step = Number(btn.dataset.step);
+    const next = Math.max(0, (Number(input.value) || 0) + step);
+    input.value = next;
+    // ถ้าเพิ่ม/ลดจำนวนทั้งหมด ให้ขยับ "ใช้งานได้" ตามถ้าค่าเดิมเท่ากัน (คงสถานะครบทุกตัวไว้)
+    if (btn.dataset.target === 'totalCameras') {
+      const working = document.getElementById('workingCameras');
+      if (Number(working.value) === next - step) working.value = next;
+      if (Number(working.value) > next) working.value = next;
+    }
+    if (btn.dataset.target === 'workingCameras') {
+      const total = Number(document.getElementById('totalCameras').value) || 0;
+      if (next > total) input.value = total;
+    }
+    updateCalc();
+  });
+});
+
+// ---------- ปุ่มลัด "ใช้งานได้ครบทุกตัว" ----------
+document.getElementById('allOkBtn').addEventListener('click', () => {
+  if (!selectedFarm) { showToast('กรุณาเลือกศูนย์วิจัยก่อน', 'err'); return; }
+  const total = Number(document.getElementById('totalCameras').value) || selectedFarm.total_cameras || 0;
+  document.getElementById('totalCameras').value = total;
+  document.getElementById('workingCameras').value = total;
+  updateCalc();
+  // ถ้ามีผู้ตรวจอยู่แล้ว บันทึกให้เลย ไม่ต้องกดปุ่มล่างซ้ำ
+  if (getInspectorValue()) {
+    document.getElementById('inspectForm').requestSubmit();
+  } else {
+    showToast('เลือกผู้ตรวจสอบ แล้วกดบันทึกได้เลย', 'ok');
+  }
+});
+
+// ---------- สรุปก่อนบันทึก (live) ----------
+function updateSubmitSummary() {
+  const box = document.getElementById('submitSummary');
+  if (!box) return;
+  if (!selectedFarm) {
+    box.className = 'submit-summary';
+    box.innerHTML = 'เลือกศูนย์วิจัยเพื่อเริ่มตรวจสอบ';
+    return;
+  }
+  const total = Number(document.getElementById('totalCameras').value) || 0;
+  const working = Number(document.getElementById('workingCameras').value) || 0;
+  const broken = total - working;
+  const inspector = getInspectorValue() || '<span style="color:var(--warn)">ยังไม่เลือกผู้ตรวจ</span>';
+  const statusTxt = broken > 0
+    ? `<span style="color:var(--bad)">พบกล้องเสีย ${broken} ตัว</span>`
+    : '<span style="color:var(--ok)">ปกติ ครบทุกตัว</span>';
+  box.className = 'submit-summary ' + (broken > 0 ? 'warn' : (getInspectorValue() ? 'ready' : ''));
+  box.innerHTML = `📋 <b>${selectedFarm.name}</b> · กล้อง <b>${working}/${total}</b> ตัว · ${statusTxt}<br>👤 ${inspector} · 📅 ${fmtDate(document.getElementById('inspectDate').value)}`;
+}
+document.getElementById('inspectDate').addEventListener('change', updateSubmitSummary);
 
 // ---------- แนบรูปภาพหน้าจอตรวจสอบ (resize ก่อนส่ง เพื่อลดขนาดไฟล์) ----------
 let capturedPhoto = null; // { base64, mime }
@@ -800,15 +996,18 @@ document.getElementById('inspectForm').addEventListener('submit', async (e) => {
   try {
     // ใช้ POST เสมอ (Content-Type: text/plain ไม่ trigger CORS preflight) เพื่อรองรับ payload ขนาดใหญ่เวลามีรูปแนบ
     await apiPost('submitRecord', payload);
-    showToast('บันทึกผลตรวจสอบเรียบร้อย', 'ok');
+    showToast('บันทึกผลตรวจสอบเรียบร้อย ✓', 'ok');
+    const keepInspector = document.getElementById('inspector').value; // คงผู้ตรวจเดิมไว้ กรอกศูนย์ถัดไปได้เลย
     document.getElementById('inspectForm').reset();
     document.getElementById('inspectDate').value = todayStr();
-    document.querySelectorAll('.fp').forEach(x => x.classList.remove('selected'));
     selectedFarm = null;
     capturedPhoto = null;
     document.getElementById('photoPreviewWrap').style.display = 'none';
-    document.getElementById('inspectorOtherWrap').style.display = 'none';
+    document.getElementById('allOkHint').textContent = 'เลือกศูนย์วิจัยถัดไป';
+    if (keepInspector && keepInspector !== '__other__') selectInspectorChip(keepInspector);
+    else document.getElementById('inspectorOtherWrap').style.display = 'none';
     updateCalc();
+    refreshTodayStatus(); // อัปเดตป้าย ✓ ตรวจวันนี้แล้ว บนการ์ดศูนย์
   } catch (err) {
     showToast(err.message, 'err');
   } finally {
