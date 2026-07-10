@@ -244,7 +244,11 @@
 
   /* ---- Executive report content ---- */
   .report-page{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:0; overflow:hidden; box-shadow:var(--shadow-md);}
-  .report-head{text-align:center; padding:26px 18px 20px; background:linear-gradient(135deg, rgba(79,209,255,.14), rgba(167,139,250,.08)); border-bottom:2px solid var(--line);}
+  .report-head{text-align:center; padding:26px 18px 20px; background:linear-gradient(135deg, rgba(79,209,255,.14), rgba(167,139,250,.08)); border-bottom:2px solid var(--line); position:relative;}
+  .report-logo{position:absolute; top:14px; left:16px; width:40px; height:40px; object-fit:contain; border-radius:8px; background:#fff; padding:3px;}
+
+  .app-footer{text-align:center; font-family:var(--mono); font-size:10.5px; color:var(--muted); padding:22px 0 8px; letter-spacing:.3px;}
+  .app-footer b{color:var(--accent); font-weight:600;}
   .report-head .org{font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:1.5px; font-weight:600;}
   .report-head h2{font-family:var(--disp); font-size:19px; margin:10px 0 4px;}
   .report-head .period{font-size:13px; color:var(--muted);}
@@ -267,7 +271,7 @@
   @media print{
     *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
     body{background:#fff !important; color:#111 !important;}
-    .scanline, nav, header, .no-print, .toast{display:none !important;}
+    .scanline, nav, header, .no-print, .toast, .app-footer{display:none !important;}
     main{padding:0 !important; max-width:none !important;}
     .view{display:none !important;}
     .view#view-report{display:block !important;}
@@ -486,6 +490,8 @@
       <div class="empty-state">กด "ดูรายงาน" เพื่อสร้างรายงาน</div>
     </div>
   </section>
+
+  <div class="app-footer">Developed by <b>Atit Chimnan</b> · CPF MSBRC2</div>
 
 </main>
 
@@ -1016,6 +1022,7 @@ function renderCurrentReport(summary, pending) {
   return `
     <div class="report-page">
       <div class="report-head">
+        <img class="report-logo" src="./cpf-logo.png" alt="CPF">
         <div class="org">CPF · MARINE SHRIMP BREEDING BUSINESS UNIT 2 (MSBRC2)</div>
         <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
         <div class="period">ข้อมูล ณ ปัจจุบัน · สร้างรายงานเมื่อ ${nowStamp()}</div>
@@ -1082,6 +1089,7 @@ function renderPeriodReport(p) {
   return `
     <div class="report-page">
       <div class="report-head">
+        <img class="report-logo" src="./cpf-logo.png" alt="CPF">
         <div class="org">CPF · MARINE SHRIMP BREEDING BUSINESS UNIT 2 (MSBRC2)</div>
         <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
         <div class="period">ช่วงเวลา ${fmtDate(p.date_from)} — ${fmtDate(p.date_to)} · สร้างรายงานเมื่อ ${nowStamp()}</div>
