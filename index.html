@@ -264,7 +264,8 @@
   .kpi.t-warn{border-top-color:var(--warn);}
   .kpi .k-label{font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase;}
   .kpi .k-value{font-family:var(--disp); font-size:22px; font-weight:700; margin-top:4px;}
-  .report-foot{margin:20px 18px 0; padding:14px 0; border-top:1px solid var(--line); font-family:var(--mono); font-size:10.5px; color:var(--muted); text-align:right;}
+  .report-foot{margin:20px 18px 0; padding:14px 0; border-top:1px solid var(--line); font-family:var(--mono); font-size:10.5px; color:var(--muted); text-align:right; line-height:1.6;}
+  .report-foot b{color:var(--accent);}
   .report-photo{margin-top:10px; border-radius:8px; overflow:hidden; border:1px solid var(--line); max-width:260px;}
   .report-photo img{width:100%; display:block;}
 
@@ -296,6 +297,7 @@
     .badge.warn{background:#fef3c7 !important; color:#92400e !important; border:1px solid #f59e0b !important;}
     .badge.none{background:#f1f5f9 !important; color:#475569 !important; border:1px solid #cbd5e1 !important;}
     .report-foot{color:#666 !important;}
+    .report-foot b{color:#0891b2 !important;}
     table{page-break-inside:auto;}
     tr{page-break-inside:avoid;}
   }
@@ -1060,7 +1062,7 @@ function renderCurrentReport(summary, pending) {
       </div>
 
       </div>
-      <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2</div>
+      <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2<br>Developed by <b>Atit Chimnan</b></div>
     </div>`;
 }
 
@@ -1127,7 +1129,7 @@ function renderPeriodReport(p) {
       </div>
 
       </div>
-      <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2</div>
+      <div class="report-foot">จัดทำโดยระบบ CCTV Monitor · MSBRC2<br>Developed by <b>Atit Chimnan</b></div>
     </div>`;
 }
 
