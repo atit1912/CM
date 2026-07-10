@@ -473,13 +473,32 @@
         <button class="seg-btn" data-mode="period">สรุปรายช่วงเวลา</button>
       </div>
       <div id="periodPicker" class="row" style="display:none; margin-top:14px;">
-        <div>
-          <label>จากวันที่</label>
-          <input type="date" id="reportFrom">
+        <div class="row full" style="margin-bottom:0;">
+          <div class="row" style="margin-bottom:0;">
+            <div>
+              <label>เลือกเดือน (ทางลัด)</label>
+              <select id="reportMonthSelect"></select>
+            </div>
+            <div>
+              <label>ปี (พ.ศ.)</label>
+              <select id="reportYearSelect"></select>
+            </div>
+          </div>
         </div>
-        <div>
-          <label>ถึงวันที่</label>
-          <input type="date" id="reportTo">
+        <div class="row full" style="margin-bottom:0;">
+          <button type="button" class="btn-secondary" id="reportApplyMonthBtn" style="width:100%;">📅 ใช้เดือนที่เลือก</button>
+        </div>
+        <div class="row full" style="margin:4px 0 0; border-top:1px dashed var(--line); padding-top:14px;">
+          <div class="row" style="margin-bottom:0;">
+            <div>
+              <label>หรือเลือกจากวันที่</label>
+              <input type="date" id="reportFrom">
+            </div>
+            <div>
+              <label>ถึงวันที่</label>
+              <input type="date" id="reportTo">
+            </div>
+          </div>
         </div>
       </div>
       <div class="btn-row" style="margin-top:14px;">
@@ -964,16 +983,87 @@ document.querySelectorAll('#reportModeSeg .seg-btn').forEach(btn => {
 document.getElementById('reportLoadBtn').addEventListener('click', loadReport);
 document.getElementById('reportPrintBtn').addEventListener('click', () => window.print());
 
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
 function reportDefaultRange() {
   const now = new Date();
   const first = new Date(now.getFullYear(), now.getMonth(), 1);
   return { from: first.toISOString().slice(0,10), to: todayStr() };
 }
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
 (function initReportDates() {
   const r = reportDefaultRange();
   document.getElementById('reportFrom').value = r.from;
   document.getElementById('reportTo').value = r.to;
+
+  // เติม dropdown เดือน
+  const now = new Date();
+  const monthSel = document.getElementById('reportMonthSelect');
+  THAI_MONTHS.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1; opt.textContent = name;
+    if (i === now.getMonth()) opt.selected = true;
+    monthSel.appendChild(opt);
+  });
+
+  // เติม dropdown ปี (พ.ศ.) — ปีปัจจุบันย้อนหลังไป 3 ปี
+  const yearSel = document.getElementById('reportYearSelect');
+  const currentBE = now.getFullYear() + 543;
+  for (let y = currentBE; y >= currentBE - 3; y--) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    yearSel.appendChild(opt);
+  }
 })();
+
+document.getElementById('reportApplyMonthBtn').addEventListener('click', () => {
+  const month = Number(document.getElementById('reportMonthSelect').value); // 1-12
+  const yearBE = Number(document.getElementById('reportYearSelect').value);
+  const yearCE = yearBE - 543;
+  const firstDay = new Date(yearCE, month - 1, 1);
+  const lastDay = new Date(yearCE, month, 0); // วันสุดท้ายของเดือน
+  const today = new Date();
+  // ถ้าเป็นเดือนปัจจุบัน ให้สิ้นสุดที่วันนี้ (เดือนยังไม่จบ) แทนวันสุดท้ายของเดือนที่ยังไม่ถึง
+  const isCurrentMonth = (yearCE === today.getFullYear() && month - 1 === today.getMonth());
+  const toDate = isCurrentMonth ? today : lastDay;
+
+  const fmt = (d) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  document.getElementById('reportFrom').value = fmt(firstDay);
+  document.getElementById('reportTo').value = fmt(toDate);
+  loadReport();
+});
+
+// สร้างข้อความช่วงเวลาแบบอ่านง่าย — ถ้าช่วงที่เลือกตรงกับทั้งเดือนพอดี (หรือทั้งเดือนถึงวันนี้) จะขึ้นชื่อเดือน/ปีแทนวันที่ดิบ
+function periodLabel(fromStr, toStr) {
+  const from = new Date(fromStr + 'T00:00:00');
+  const to = new Date(toStr + 'T00:00:00');
+  const today = new Date();
+  const lastDayOfFromMonth = new Date(from.getFullYear(), from.getMonth() + 1, 0);
+  const isFirstOfMonth = from.getDate() === 1;
+  const sameMonthAsTo = from.getFullYear() === to.getFullYear() && from.getMonth() === to.getMonth();
+  const toIsLastDay = to.getDate() === lastDayOfFromMonth.getDate() && sameMonthAsTo;
+  const toIsTodayInProgress = sameMonthAsTo && to.toDateString() === today.toDateString() && !toIsLastDay;
+
+  const monthName = THAI_MONTHS[from.getMonth()];
+  const yearBE = from.getFullYear() + 543;
+
+  if (isFirstOfMonth && toIsLastDay) {
+    return `รายงานประจำเดือน${monthName} ${yearBE}`;
+  }
+  if (isFirstOfMonth && toIsTodayInProgress) {
+    return `รายงานประจำเดือน${monthName} ${yearBE} (ข้อมูลถึงวันที่ ${fmtDate(toStr)})`;
+  }
+  return `ช่วงเวลา ${fmtDate(fromStr)} — ${fmtDate(toStr)}`;
+}
+
+function fmtDateFull(s) {
+  if (!s) return '-';
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' });
+}
 
 async function loadReport() {
   const content = document.getElementById('reportContent');
@@ -1027,7 +1117,7 @@ function renderCurrentReport(summary, pending) {
         <img class="report-logo" src="./cpf-logo.png" alt="CPF">
         <div class="org">บริษัทเจริญโภคภัณฑ์อาหาร จำกัด (มหาชน) ธุรกิจพันธุ์กุ้งทะเล 2</div>
         <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
-        <div class="period">ข้อมูล ณ ปัจจุบัน · สร้างรายงานเมื่อ ${nowStamp()}</div>
+        <div class="period">ข้อมูล ณ วันที่ ${fmtDateFull(todayStr())} · สร้างรายงานเมื่อ ${nowStamp()}</div>
       </div>
       <div class="report-body">
 
@@ -1094,7 +1184,7 @@ function renderPeriodReport(p) {
         <img class="report-logo" src="./cpf-logo.png" alt="CPF">
         <div class="org">บริษัทเจริญโภคภัณฑ์อาหาร จำกัด (มหาชน) ธุรกิจพันธุ์กุ้งทะเล 2</div>
         <h2>รายงานสรุปสถานะกล้องวงจรปิด — ผู้บริหาร</h2>
-        <div class="period">ช่วงเวลา ${fmtDate(p.date_from)} — ${fmtDate(p.date_to)} · สร้างรายงานเมื่อ ${nowStamp()}</div>
+        <div class="period">${periodLabel(p.date_from, p.date_to)} · สร้างรายงานเมื่อ ${nowStamp()}</div>
       </div>
       <div class="report-body">
 
