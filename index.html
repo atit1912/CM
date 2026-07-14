@@ -394,6 +394,13 @@
     <div class="farm-picker" id="farmPicker"></div>
 
     <form id="inspectForm">
+      <div class="row">
+        <div>
+          <label>วัน/เดือน/ปี ที่ตรวจสอบ</label>
+          <input type="date" id="inspectDate" required>
+        </div>
+      </div>
+
       <h2 class="section-title">2. ผู้ตรวจสอบ</h2>
       <div class="chip-row" id="inspectorChips"></div>
       <div class="inspector-other" id="inspectorOtherWrap">
@@ -458,14 +465,8 @@
       </div>
 
       <details class="extra-details" id="extraDetails">
-        <summary>➕ เพิ่มเติม: วันที่ย้อนหลัง / หมายเหตุ / แนบรูป</summary>
-        <div class="row" style="margin-top:14px;">
-          <div>
-            <label>วัน/เดือน/ปี ที่ตรวจสอบ</label>
-            <input type="date" id="inspectDate" required>
-          </div>
-        </div>
-        <div class="row full">
+        <summary>➕ เพิ่มเติม: หมายเหตุ / แนบรูป</summary>
+        <div class="row full" style="margin-top:14px;">
           <div>
             <label>หมายเหตุ</label>
             <textarea id="note" placeholder="(ถ้ามี)"></textarea>
@@ -713,6 +714,7 @@ async function init() {
   }
   renderFarmPicker();
   renderFilterFarms();
+  updateClearBtnLabel();
   renderInspectorSelect();
   renderInspectorChips();
   refreshTodayStatus();
@@ -772,6 +774,14 @@ function renderFilterFarms() {
     opt.value = f.code; opt.textContent = f.name;
     sel.appendChild(opt);
   });
+  sel.addEventListener('change', updateClearBtnLabel);
+}
+
+function updateClearBtnLabel() {
+  const sel = document.getElementById('filterFarm');
+  const btn = document.getElementById('clearBtn');
+  if (!sel || !btn) return;
+  btn.textContent = sel.value ? '🗑️ ลบเฉพาะศูนย์นี้' : '🗑️ ล้างประวัติทั้งหมด';
 }
 
 function renderInspectorSelect() {
@@ -880,7 +890,7 @@ document.getElementById('allOkBtn').addEventListener('click', () => {
   updateCalc();
   // ถ้ามีผู้ตรวจอยู่แล้ว บันทึกให้เลย ไม่ต้องกดปุ่มล่างซ้ำ
   if (getInspectorValue()) {
-    document.getElementById('inspectForm').requestSubmit();
+    document.getElementById('submitBtn').click(); // เข้ากันได้กว้างกว่า requestSubmit() บนมือถือรุ่นเก่า
   } else {
     showToast('เลือกผู้ตรวจสอบ แล้วกดบันทึกได้เลย', 'ok');
   }
@@ -962,6 +972,7 @@ document.getElementById('inspectForm').addEventListener('submit', async (e) => {
 
   const total = Number(document.getElementById('totalCameras').value);
   const working = Number(document.getElementById('workingCameras').value);
+  if (total <= 0) { showToast('กรุณาระบุจำนวนกล้องทั้งหมด', 'err'); return; }
   if (working > total) { showToast('จำนวนที่ใช้งานได้ ต้องไม่มากกว่าจำนวนทั้งหมด', 'err'); return; }
 
   const broken = total - working;
@@ -1444,7 +1455,15 @@ function renderPeriodReport(p) {
 
 // ---------- Clear all records (สำหรับทดสอบ) ----------
 document.getElementById('clearBtn').addEventListener('click', async () => {
-  const confirmText = prompt('การลบนี้จะล้างประวัติการตรวจสอบ "ทั้งหมด" ทุกศูนย์ และกู้คืนไม่ได้\n\nพิมพ์คำว่า "ลบ" เพื่อยืนยัน:');
+  const farmSel = document.getElementById('filterFarm');
+  const farmCode = farmSel.value; // ใช้ตัวกรองศูนย์วิจัยที่เลือกอยู่ในหน้าประวัติ
+  const farmName = farmCode ? farmSel.options[farmSel.selectedIndex].textContent : null;
+
+  const warnMsg = farmCode
+    ? `การลบนี้จะล้างประวัติการตรวจสอบเฉพาะ "${farmName}" เท่านั้น (ศูนย์อื่นไม่กระทบ) และกู้คืนไม่ได้\n\nพิมพ์คำว่า "ลบ" เพื่อยืนยัน:`
+    : 'ยังไม่ได้เลือกศูนย์วิจัยในตัวกรองด้านบน — การลบนี้จะล้างประวัติ "ทุกศูนย์ทั้งหมด" และกู้คืนไม่ได้\n\nพิมพ์คำว่า "ลบ" เพื่อยืนยัน:';
+
+  const confirmText = prompt(warnMsg);
   if (confirmText !== 'ลบ') {
     if (confirmText !== null) showToast('ยกเลิกการลบ (พิมพ์ไม่ตรง)', 'err');
     return;
@@ -1452,13 +1471,14 @@ document.getElementById('clearBtn').addEventListener('click', async () => {
   const btn = document.getElementById('clearBtn');
   btn.disabled = true; btn.textContent = 'กำลังลบ...';
   try {
-    const res = await api('clearAllRecords');
-    showToast(`ล้างประวัติเรียบร้อย (ลบ ${res.rows_removed} รายการ)`, 'ok');
+    const res = await api('clearAllRecords', farmCode ? { farm_code: farmCode } : {});
+    const scope = res.farm_code ? `เฉพาะ ${farmName}` : 'ทุกศูนย์';
+    showToast(`ล้างประวัติเรียบร้อย (${scope}, ลบ ${res.rows_removed} รายการ)`, 'ok');
     loadHistory();
   } catch (e) {
     showToast('ลบไม่สำเร็จ: ' + e.message, 'err');
   } finally {
-    btn.disabled = false; btn.textContent = '🗑️ ล้างประวัติ';
+    btn.disabled = false; updateClearBtnLabel();
   }
 });
 
